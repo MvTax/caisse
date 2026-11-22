@@ -24,7 +24,7 @@ import {
 } from './bridgeClient';
 import type { EscPos } from './escpos';
 import { eposPrint, eposStatus } from './eposClient';
-import { charsetTicket, orderTicket, testTicket } from './ticket';
+import { charsetTicket, customerTicket, invoiceTicket, orderTicket, testTicket } from './ticket';
 
 export const servingMode = detectServingMode(location);
 
@@ -142,6 +142,7 @@ async function send(
         data.value.settings.epsonIp,
         { bytes: ticket.toBytes(), preview: ticket.toPreview() },
         copies,
+        { format: data.value.settings.epsonFormat },
       )
     : await sendPrint(config(), ticket.toBytes(), { jobId, copies, target: target(), label });
   if (r.ok) {
@@ -251,4 +252,29 @@ export async function printTestTicket(kind: 'test' | 'charset'): Promise<Result<
 /** Envoi d'octets déjà construits (récap de journée…). */
 export async function printRaw(ticket: EscPos, label: string): Promise<Result<PrintResponse>> {
   return send(ticket, `raw-${Date.now()}`, label, 1);
+}
+
+/**
+ * Ticket client (détaillé, sur le modèle du ticket de caisse) ou note sans détail (total
+ * seul) pour une commande. N'entre pas dans le journal d'impression de la commande.
+ */
+export async function printCustomerReceipt(
+  orderId: string,
+  kind: 'detailed' | 'total-only',
+): Promise<Result<PrintResponse>> {
+  const order = data.value.orders.find((o) => o.id === orderId);
+  if (!order) {
+    return { ok: false, error: { kind: 'bad-response', message: 'Commande introuvable' } };
+  }
+  const s = data.value.settings;
+  const opts = {
+    columns: s.columns,
+    at: new Date(),
+    header: s.receiptHeader,
+    vatRates: s.vatRates,
+  };
+  const ticket =
+    kind === 'detailed' ? customerTicket(menu, order, opts) : invoiceTicket(order, opts);
+  const label = kind === 'detailed' ? 'Ticket client' : 'Note sans detail';
+  return send(ticket, `receipt-${order.id}-${Date.now()}`, `${label} #${order.number}`, 1);
 }

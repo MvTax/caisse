@@ -113,6 +113,14 @@ GitHub Pages. Les octets ESC/POS de `ticket.ts` sont envoyés tels quels dans `<
 variante `<text>` automatique si l'imprimante répond `SchemaError`. La passerelle + CSI GIANT-100
 restent disponibles (réglage « Passerelle »). À valider sur papier : ticket test caractères
 (accents, €) via `<command>`.
+Secours : réglage « Format d'envoi » → « Simple » (`epsonFormat: 'text'`) envoie directement en
+`<text>` (méthode du testeur, ticket sorti en boutique). Le ticket récap de journée s'imprime
+depuis 📊 Statistiques.
+Ticket client (fiche commande) : modèle du ticket MencomSI de la boutique **Mangos Créteil
+Soleil** (photo du 22/11/2026 : en-tête, NAF 5610C, TVA FR 67 839932977, SIRET 839 932 977
+00029, eau à 5,5 %). En-tête et taux de TVA par catégorie dans les réglages ; seul 5,5 % pour
+l'eau est confirmé, les autres taux sont à faire vérifier. Mention « non fiscal », aucune
+imitation de la mention NF525, de la signature ou du code-barres du ticket certifié.
 
 
 ### 4.1 Imprimante

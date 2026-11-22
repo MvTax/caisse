@@ -1,9 +1,11 @@
 import { useState } from 'preact/hooks';
-import { data, menu, now } from '../app/state';
+import { data, menu, now, showToast } from '../app/state';
 import { pop } from '../app/nav';
 import { getCategory } from '../data/menu';
 import { formatCents } from '../domain/money';
 import { computeStats, filterOrders, periodRange, type Period } from '../domain/stats';
+import { canPrint, printRaw } from '../printing/printService';
+import { dayRecapTicket } from '../printing/ticket';
 import { TopBar } from './TopBar';
 
 const PERIODS: [Period, string][] = [
@@ -30,6 +32,7 @@ function Bar({ pct, color }: { pct: number; color?: string }) {
 
 export function Stats() {
   const [period, setPeriod] = useState<Period>('today');
+  const [printing, setPrinting] = useState(false);
   const orders = filterOrders(data.value.orders, periodRange(period, now.value));
   const s = computeStats(menu, orders);
   const maxHour = Math.max(1, ...s.byHour);
@@ -39,6 +42,25 @@ export function Stats() {
   const lastHour = Math.max(20, ...used);
   const hours = Array.from({ length: lastHour - firstHour + 1 }, (_, i) => firstHour + i);
   const maxProduct = Math.max(1, ...s.byProduct.map((p) => p.qty));
+
+  const printRecap = async () => {
+    const at = new Date();
+    const label = PERIODS.find(([p]) => p === period)?.[1] ?? '';
+    const title =
+      period === 'today' || period === 'yesterday'
+        ? `${label} · ${new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris' }).format(
+            period === 'today' ? at : new Date(at.getTime() - 86_400_000),
+          )}`
+        : label;
+    setPrinting(true);
+    const r = await printRaw(
+      dayRecapTicket({ columns: data.value.settings.columns, title, stats: s, at }),
+      `Recapitulatif ${label}`,
+    );
+    setPrinting(false);
+    if (r.ok) showToast('🖨️ Récapitulatif envoyé à l’imprimante');
+    else showToast(r.error.message, 'error');
+  };
 
   return (
     <div class="screen stats">
@@ -210,7 +232,19 @@ export function Stats() {
             </section>
           </>
         )}
-        <p class="footnote">Exports CSV/JSON et ticket récapitulatif : prochaines étapes.</p>
+        {canPrint() && (
+          <button
+            type="button"
+            class="btn btn-secondary btn-block"
+            disabled={printing || s.orderCount === 0}
+            onClick={() => void printRecap()}
+          >
+            {printing ? 'Envoi…' : '🖨️ Imprimer le récapitulatif'}
+          </button>
+        )}
+        <p class="footnote">
+          Récapitulatif imprimé : non fiscal. Exports CSV/JSON : prochaine étape.
+        </p>
       </main>
     </div>
   );

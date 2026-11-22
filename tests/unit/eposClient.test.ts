@@ -122,6 +122,36 @@ describe('eposPrint', () => {
     expect(second).toContain('Café 3,50 €&#10;</text>');
   });
 
+  it('format « Simple » : directement en <text>, sans <command>', async () => {
+    const f = vi.fn((_u: string, _i: RequestInit) => xml(OK));
+    const r = await eposPrint(IP, ticket(), 2, {
+      fetchImpl: f as unknown as typeof fetch,
+      format: 'text',
+    });
+    expect(r.ok).toBe(true);
+    expect(f).toHaveBeenCalledTimes(1);
+    const body = String(f.mock.calls[0]![1].body);
+    expect(body).not.toContain('<command>');
+    expect(body.split('Café 3,50 €&#10;</text>')).toHaveLength(3); // 2 exemplaires
+    expect(body.split('<cut type="feed"/>')).toHaveLength(3);
+    expect(body).not.toContain('<pulse');
+  });
+
+  it('format « Simple » : tiroir ouvert une seule fois, après les exemplaires', async () => {
+    const f = vi.fn((_u: string, _i: RequestInit) => xml(OK));
+    const p = new EscPos({ columns: 48 }).init().textLine('X');
+    p.cut().openDrawer();
+    await eposPrint(IP, { bytes: p.toBytes(), preview: p.toPreview() }, 2, {
+      fetchImpl: f as unknown as typeof fetch,
+      format: 'text',
+    });
+    const body = String(f.mock.calls[0]![1].body);
+    expect(body.split('<pulse').length).toBe(2);
+    expect(body).toMatch(
+      /<cut type="feed"\/><pulse drawer="drawer_1" time="pulse_100"\/><\/epos-print>/,
+    );
+  });
+
   it('capot ouvert → erreur imprimante en français', async () => {
     const f = () => xml(fail('EPTR_COVER_OPEN', 0x20 | 0x8));
     const r = await eposPrint(IP, ticket(), 1, { fetchImpl: f as unknown as typeof fetch });

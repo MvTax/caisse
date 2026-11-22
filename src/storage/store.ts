@@ -5,7 +5,8 @@
  */
 import type { Cart } from '../domain/cart';
 import type { Counters, Order } from '../domain/order';
-import { DEFAULT_SETTINGS, type Settings } from './settings';
+import { isVatRate } from '../domain/vat';
+import { DEFAULT_SETTINGS, DEFAULT_VAT_RATES, type Settings } from './settings';
 import { migrateV1, V1_KEY } from './migrateV1';
 
 export const STORAGE_KEY = 'ma_commander';
@@ -30,7 +31,11 @@ export interface StorageLike {
 export function emptyData(): AppData {
   return {
     schemaVersion: SCHEMA_VERSION,
-    settings: { ...DEFAULT_SETTINGS, bippers: [...DEFAULT_SETTINGS.bippers] },
+    settings: {
+      ...DEFAULT_SETTINGS,
+      bippers: [...DEFAULT_SETTINGS.bippers],
+      vatRates: { ...DEFAULT_SETTINGS.vatRates },
+    },
     orders: [],
     menuOverrides: {},
     counters: { day: '', lastNumber: 0 },
@@ -65,6 +70,18 @@ function cleanSettings(s: Settings & { bipperMax?: unknown }): Settings {
     rest.printerMode = DEFAULT_SETTINGS.printerMode;
   }
   if (typeof rest.epsonIp !== 'string' || !rest.epsonIp) rest.epsonIp = DEFAULT_SETTINGS.epsonIp;
+  if (rest.epsonFormat !== 'escpos' && rest.epsonFormat !== 'text') {
+    rest.epsonFormat = DEFAULT_SETTINGS.epsonFormat;
+  }
+  if (typeof rest.receiptHeader !== 'string') rest.receiptHeader = DEFAULT_SETTINGS.receiptHeader;
+  const rates: unknown = rest.vatRates;
+  rest.vatRates = { ...DEFAULT_VAT_RATES };
+  if (rates && typeof rates === 'object') {
+    for (const k of Object.keys(DEFAULT_VAT_RATES) as (keyof typeof DEFAULT_VAT_RATES)[]) {
+      const v = (rates as Record<string, unknown>)[k];
+      if (isVatRate(v)) rest.vatRates[k] = v;
+    }
+  }
   return rest;
 }
 

@@ -211,32 +211,47 @@ export async function eposStatus(
   return { ok: true, value: { problems: statusProblems(r.value.status), status: r.value.status } };
 }
 
-/** Imprime un ticket (octets ESC/POS + aperçu pour la variante de secours). */
+/**
+ * Format d'envoi à l'Epson :
+ *  - 'escpos' : octets ESC/POS de ticket.ts dans <command> (PC858, bipper inversé…), avec
+ *               repli automatique en <text> si l'imprimante répond SchemaError ;
+ *  - 'text'   : directement en éléments <text>, la méthode utilisée par le testeur, dont un
+ *               ticket est sorti en boutique le 22/11/2026. Solution de secours si le format
+ *               ESC/POS sort mal (caractères bizarres, rien qui sort).
+ */
+export type EposFormat = 'escpos' | 'text';
+
+/** Document <text> pour n exemplaires, avec ouverture du tiroir éventuelle. */
+export function textPrintDoc(preview: PreviewLine[], copies: number, drawer: boolean): string {
+  const inner = textDoc(preview, { drawer: false }).replace(
+    /^<epos-print[^>]*>|<\/epos-print>$/g,
+    '',
+  );
+  const pulse = drawer ? '<pulse drawer="drawer_1" time="pulse_100"/>' : '';
+  return `<epos-print xmlns="${EPOS_NS}">${inner.repeat(copies)}${pulse}</epos-print>`;
+}
+
+/** Imprime un ticket (octets ESC/POS + aperçu pour la variante texte). */
 export async function eposPrint(
   ip: string,
   ticket: { bytes: Uint8Array; preview: PreviewLine[] },
   copies: number,
-  opts: EposOptions = {},
+  opts: EposOptions & { format?: EposFormat } = {},
 ): Promise<Result<PrintResponse>> {
   const n = Math.max(1, Math.min(3, Math.round(copies)));
   const all = new Uint8Array(ticket.bytes.length * n);
   for (let i = 0; i < n; i++) all.set(ticket.bytes, i * ticket.bytes.length);
+  const asText = () => textPrintDoc(ticket.preview, n, hasDrawerPulse(ticket.bytes));
 
   const t0 = Date.now();
-  let r = await eposSend(ip, commandDoc(all), opts);
-  if (r.ok && !r.value.success && r.value.code === 'SchemaError') {
-    const drawer = hasDrawerPulse(ticket.bytes);
-    let doc = textDoc(ticket.preview, { drawer: false });
-    if (n > 1) {
-      const inner = doc.replace(/^<epos-print[^>]*>|<\/epos-print>$/g, '');
-      doc = `<epos-print xmlns="${EPOS_NS}">${inner.repeat(n)}</epos-print>`;
+  let r: Result<EposResponse>;
+  if (opts.format === 'text') {
+    r = await eposSend(ip, asText(), opts);
+  } else {
+    r = await eposSend(ip, commandDoc(all), opts);
+    if (r.ok && !r.value.success && r.value.code === 'SchemaError') {
+      r = await eposSend(ip, asText(), opts);
     }
-    if (drawer)
-      doc = doc.replace(
-        '</epos-print>',
-        '<pulse drawer="drawer_1" time="pulse_100"/></epos-print>',
-      );
-    r = await eposSend(ip, doc, opts);
   }
   if (!r.ok) return r;
   if (!r.value.success) return { ok: false, error: responseError(r.value) };
