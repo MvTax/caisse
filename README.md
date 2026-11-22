@@ -9,6 +9,9 @@ fiscal) avec impression des tickets sur l'imprimante thermique de la boutique.
 - En boutique : l'app est ouverte depuis l'adresse affichée par la passerelle sur la caisse
   (`http://192.168.1.122:8080`) — **[guide pas à pas](docs/GUIDE_BOUTIQUE.md)**,
   [dépannage](docs/DEPANNAGE.md).
+- Testeur d'impression (page autonome, diagnostic de l'imprimante) : https://mvtax.github.io/caisse/testeur/
+  — pour tester depuis l'iPhone, lancer la passerelle avec `-AppUrl 'https://mvtax.github.io/caisse/testeur/index.html'`
+  (commande complète affichée dans le testeur). Source : `public/testeur/index.html`.
 
 ## Développement
 

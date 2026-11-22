@@ -5,3 +5,6 @@ package-lock.json
 playwright-report
 test-results
 CLAUDE.md
+
+# Testeur d impression : copie de index.html de la branche claude/festive-carson-ei11cs
+public/testeur
