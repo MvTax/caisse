@@ -173,11 +173,11 @@
 <main>
   <section>
     <div class="card" id="epsonCard">
-      <h2>Epson TM-m30 — depuis l'iPhone</h2>
+      <h2>Epson TM-m30II — depuis l'iPhone</h2>
       <div class="grid3">
         <div style="grid-column: span 2">
           <label for="epIp">IP de l'imprimante Epson</label>
-          <input id="epIp" type="text" placeholder="ex. 192.168.1.50" inputmode="decimal" autocomplete="off" spellcheck="false">
+          <input id="epIp" type="text" placeholder="192.168.1.103" value="192.168.1.103" inputmode="decimal" autocomplete="off" spellcheck="false">
         </div>
         <div>
           <label for="epProto">Connexion</label>
@@ -207,7 +207,7 @@
         <p><b>Bluetooth (avec l'app Epson)</b></p>
         <ol>
           <li>Installez l'app gratuite <b>Epson TM Print Assistant</b> (App Store).</li>
-          <li>Dans l'app, ajoutez l'imprimante en Bluetooth (le voyant Bluetooth de l'Epson doit être allumé).</li>
+          <li>Dans l'app, ajoutez l'imprimante en Bluetooth : elle s'appelle <b>TM-m30II_085261</b>, code <b>0000</b> si on vous le demande.</li>
           <li>Touchez <b>Imprimer en Bluetooth</b> ici : l'app s'ouvre et imprime, puis revenez dans Safari.</li>
         </ol>
       </details>
@@ -1392,7 +1392,8 @@ Tél. 01 23 45 67 89</textarea>
   $('#epProto').addEventListener('change', saveEp);
   $('#epIp').addEventListener('keydown', (e) => { if (e.key === 'Enter') epTest(); });
   try {
-    $('#epIp').value = localStorage.getItem('testeur.epIp') || '';
+    // IP relevée sur la page d'état de l'Epson TM-m30II de la boutique.
+    $('#epIp').value = localStorage.getItem('testeur.epIp') || '192.168.1.103';
     $('#epProto').value = localStorage.getItem('testeur.epProto') || (location.protocol === 'https:' ? 'https' : 'http');
   } catch (e) { $('#epProto').value = location.protocol === 'https:' ? 'https' : 'http'; }
   saveEp();
