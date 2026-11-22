@@ -211,6 +211,20 @@ export function PrintSettings() {
           >
             Ouvrir la page de l’imprimante (1ʳᵉ fois)
           </a>
+          <Choice
+            label="Format d’envoi"
+            value={st.epsonFormat}
+            options={[
+              ['escpos', 'Complet'],
+              ['text', 'Simple'],
+            ]}
+            onChange={(v) => set('epsonFormat', v)}
+          />
+          <p class="ios-note">
+            {st.epsonFormat === 'escpos'
+              ? 'Complet : ticket mis en page (bipper en très gros, inversé). Si le ticket sort mal ou ne sort pas, essaie « Simple ».'
+              : 'Simple : même méthode que le testeur (ticket sorti en boutique). Mise en page plus sobre.'}
+          </p>
           <ol class="ios-steps">
             <li>
               La 1ʳᵉ fois sur un iPhone : touche « Ouvrir la page de l’imprimante ». Safari affiche

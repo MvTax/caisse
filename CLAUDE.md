@@ -113,6 +113,9 @@ GitHub Pages. Les octets ESC/POS de `ticket.ts` sont envoyés tels quels dans `<
 variante `<text>` automatique si l'imprimante répond `SchemaError`. La passerelle + CSI GIANT-100
 restent disponibles (réglage « Passerelle »). À valider sur papier : ticket test caractères
 (accents, €) via `<command>`.
+Secours : réglage « Format d'envoi » → « Simple » (`epsonFormat: 'text'`) envoie directement en
+`<text>` (méthode du testeur, ticket sorti en boutique). Le ticket récap de journée s'imprime
+depuis 📊 Statistiques.
 
 
 ### 4.1 Imprimante

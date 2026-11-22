@@ -12,6 +12,11 @@ L'iPhone imprime directement sur l'**Epson TM-m30II** en Wi-Fi.
    Safari affiche « Cette connexion n'est pas privée » : **Afficher les détails** → **visiter ce site
    web** → confirmer (si une fenêtre demande un identifiant : **Annuler**). Reviens dans l'app.
 4. La pastille « Imprimante » est verte : c'est prêt. Sinon : Réglages → Impression → Dépannage.
+5. **Premier essai** : Réglages → Impression → « Imprimer un ticket de test », puis « Ticket test
+   caractères spéciaux ». Si le ticket sort mal (caractères bizarres) ou ne sort pas alors que
+   l'app dit « envoyé » : mets **Format d'envoi** sur **Simple** et recommence.
+
+Fin de journée : 📊 Statistiques → « Imprimer le récapitulatif » (ticket de synthèse, non fiscal).
 
 La suite de ce guide concerne la **passerelle** (réglage « Passerelle », imprimante CSI GIANT-100).
 

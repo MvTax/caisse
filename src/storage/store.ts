@@ -65,6 +65,9 @@ function cleanSettings(s: Settings & { bipperMax?: unknown }): Settings {
     rest.printerMode = DEFAULT_SETTINGS.printerMode;
   }
   if (typeof rest.epsonIp !== 'string' || !rest.epsonIp) rest.epsonIp = DEFAULT_SETTINGS.epsonIp;
+  if (rest.epsonFormat !== 'escpos' && rest.epsonFormat !== 'text') {
+    rest.epsonFormat = DEFAULT_SETTINGS.epsonFormat;
+  }
   return rest;
 }
 

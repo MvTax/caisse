@@ -33,6 +33,8 @@ Suivre les questions dans l'ordre. Les mêmes conseils sont dans l'app : ⚙️ 
 ## 3. Ticket illisible / caractères bizarres
 
 - Imprimer « Ticket test caractères » (⚙️ Réglages) et comparer avec l'écran.
+- **Epson** : Réglages → Impression → Format d'envoi → **Simple** (texte envoyé tel quel, méthode
+  du testeur), puis réimprimer le ticket test.
 - Le ticket d'autotest doit indiquer `CODE PAGE : PC 858`. L'app envoie aussi la commande
   `ESC t 19` (PC858) au début de chaque ticket.
 
@@ -45,6 +47,7 @@ Suivre les questions dans l'ordre. Les mêmes conseils sont dans l'app : ⚙️ 
 
 - Papier épuisé ou rouleau à l'envers (la face thermique doit être vers la tête d'impression).
 - Capot mal fermé.
+- **Epson** : essayer Format d'envoi → **Simple** (Réglages → Impression).
 - Regarder la fenêtre MA+ Bridge : une ligne verte `[OK] ... imprime (xxx octets)` confirme que les
   octets ont été remis à l'imprimante.
 

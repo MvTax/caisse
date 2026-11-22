@@ -142,11 +142,18 @@ describe('store', () => {
     expect(DEFAULT_SETTINGS.printerMode).toBe('epson');
     expect(DEFAULT_SETTINGS.epsonIp).toBe('192.168.1.103');
     const s = new MemStorage();
-    s.setItem(STORAGE_KEY, JSON.stringify({ settings: { printerMode: 'fax', epsonIp: '' } }));
+    expect(DEFAULT_SETTINGS.epsonFormat).toBe('escpos');
+    s.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ settings: { printerMode: 'fax', epsonIp: '', epsonFormat: 'pdf' } }),
+    );
     expect(loadData(s).data.settings).toMatchObject({
       printerMode: 'epson',
       epsonIp: '192.168.1.103',
+      epsonFormat: 'escpos',
     });
+    s.setItem(STORAGE_KEY, JSON.stringify({ settings: { epsonFormat: 'text' } }));
+    expect(loadData(s).data.settings.epsonFormat).toBe('text');
     s.setItem(STORAGE_KEY, JSON.stringify({ settings: { printerMode: 'bridge' } }));
     expect(loadData(s).data.settings.printerMode).toBe('bridge');
   });

@@ -100,3 +100,29 @@ test('Epson : ticket de test depuis les réglages', async ({ page }) => {
   await expect(page.getByRole('status').filter({ hasText: 'Ticket de test envoyé' })).toBeVisible();
   expect(commandBytes(prints[0]!).toString('latin1')).toContain('IMPRESSION OK');
 });
+
+test('Epson : format « Simple » (secours) → ticket envoyé en <text>', async ({ page }) => {
+  const prints = await mockEpson(page, () => 'ok');
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Réglages', exact: true }).click();
+  await page.getByRole('radio', { name: 'Simple' }).click();
+  await page.getByRole('button', { name: /Imprimer un ticket de test/ }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Ticket de test envoyé' })).toBeVisible();
+  expect(prints[0]).not.toContain('<command>');
+  expect(prints[0]).toContain('IMPRESSION OK');
+});
+
+test('Epson : récapitulatif de la journée depuis les statistiques', async ({ page }) => {
+  const prints = await mockEpson(page, () => 'ok');
+  await page.goto('/');
+  await orderSandwich(page);
+  await expect(page.getByRole('status').filter({ hasText: 'Commande #1 imprimée' })).toBeVisible();
+  await page.getByRole('button', { name: 'Statistiques', exact: true }).click();
+  await page.getByRole('button', { name: /Imprimer le récapitulatif/ }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Récapitulatif envoyé' })).toBeVisible();
+  expect(prints).toHaveLength(2);
+  const recap = commandBytes(prints[1]!).toString('latin1');
+  expect(recap).toContain('CAPITULATIF'); // « RÉCAPITULATIF » en PC858
+  expect(recap).toContain('1x Sandwich');
+  expect(recap).toContain('non fiscal');
+});

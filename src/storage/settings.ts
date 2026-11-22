@@ -8,6 +8,8 @@ export interface Settings {
   printerMode: PrinterMode;
   /** IP de l'Epson TM-m30II (page d'état de l'imprimante). */
   epsonIp: string;
+  /** Envoi à l'Epson : octets ESC/POS (par défaut) ou texte simple (secours). */
+  epsonFormat: 'escpos' | 'text';
   /** Adresse de la passerelle sur la caisse (utilisée hors passerelle, en dev). */
   bridgeHost: string;
   bridgePort: number;
@@ -30,6 +32,7 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   printerMode: 'epson',
   epsonIp: '192.168.1.103',
+  epsonFormat: 'escpos',
   bridgeHost: '192.168.1.122',
   bridgePort: 8080,
   printerIp: '192.168.1.200',

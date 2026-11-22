@@ -142,6 +142,7 @@ async function send(
         data.value.settings.epsonIp,
         { bytes: ticket.toBytes(), preview: ticket.toPreview() },
         copies,
+        { format: data.value.settings.epsonFormat },
       )
     : await sendPrint(config(), ticket.toBytes(), { jobId, copies, target: target(), label });
   if (r.ok) {
