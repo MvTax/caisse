@@ -1,0 +1,33 @@
+name: Passerelle Windows (PowerShell 5.1)
+
+on:
+  push:
+    paths:
+      - 'bridge/**'
+      - '.github/workflows/bridge-windows.yml'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  selftest:
+    name: Auto-test ma-bridge.ps1
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version de PowerShell (doit être 5.1)
+        shell: powershell
+        run: $PSVersionTable.PSVersion.ToString()
+
+      - name: Auto-test via -File (fausse imprimante TCP)
+        shell: cmd
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File bridge\ma-bridge.ps1 -SelfTest
+
+      - name: Auto-test via iex (comme la commande du matin)
+        shell: cmd
+        env:
+          MA_BRIDGE_SELFTEST: '1'
+        run: powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ([IO.File]::ReadAllText('bridge\ma-bridge.ps1', [Text.Encoding]::Default))"

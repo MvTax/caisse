@@ -26,6 +26,7 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
       - run: npm run typecheck
+      - run: npm run check:bridge
       - run: npm test
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
@@ -60,3 +61,15 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  bridge-live:
+    name: Commande du matin réelle (Windows, depuis Pages)
+    needs: deploy
+    runs-on: windows-latest
+    steps:
+      - name: Télécharge bridge.ps1 depuis GitHub Pages et lance l'auto-test
+        shell: cmd
+        env:
+          MA_BRIDGE_SELFTEST: '1'
+        # Exactement la ligne collée en boutique ; MA_BRIDGE_SELFTEST active le mode test.
+        run: powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol='Tls12'; iex ((New-Object Net.WebClient).DownloadString('https://mvtax.github.io/caisse/bridge.ps1'))"
