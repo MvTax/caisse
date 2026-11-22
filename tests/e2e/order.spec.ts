@@ -1,7 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
+import { mockBridge } from './bridgeMock';
 
 /** Accepte automatiquement les confirmations (« Supprimer ? »). */
 test.beforeEach(async ({ page }) => {
+  await mockBridge(page, () => 'ok');
   page.on('dialog', (d) => d.accept());
   page.on('pageerror', (e) => {
     throw e;
@@ -83,7 +85,7 @@ test('commande complète multi-articles en espèces → liste → détail → te
   await validate.click();
 
   await expect(
-    page.getByRole('status').filter({ hasText: 'Commande #1 · Bipper 13' }),
+    page.getByRole('status').filter({ hasText: /Commande #1 .*Bipper 13/ }),
   ).toBeVisible();
 
   // Liste des commandes
@@ -167,5 +169,5 @@ test('autre numéro de bipper saisi à la main', async ({ page }) => {
   await page.getByRole('radio', { name: /Carte/ }).click();
   await page.getByLabel('Autre numéro').fill('42');
   await page.getByRole('button', { name: /Valider la commande/ }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Bipper 42' })).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: /Bipper 42/ })).toBeVisible();
 });

@@ -9,6 +9,10 @@ import { Settings } from '../ui/Settings';
 import { Stats } from '../ui/Stats';
 import { TabBar } from '../ui/TabBar';
 import { ToastHost } from '../ui/Toast';
+import { PrintFailSheet } from '../ui/PrintFailSheet';
+import { startHealthPolling } from '../printing/printService';
+
+startHealthPolling();
 
 function CurrentScreen() {
   if (tab.value === 'orders') return <Orders />;
@@ -45,6 +49,7 @@ export function App() {
         <CurrentScreen />
       </div>
       {showTabs && <TabBar />}
+      <PrintFailSheet />
       <ToastHost />
     </div>
   );

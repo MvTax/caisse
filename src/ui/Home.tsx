@@ -1,32 +1,12 @@
 import { data, menu } from '../app/state';
 import { push } from '../app/nav';
-import { detectServingMode } from '../app/env';
 import { cartCount, cartTotal } from '../domain/cart';
 import { formatCents } from '../domain/money';
 import type { Category } from '../data/menu';
 import { Icon } from './Icon';
 import { plural, tileSubtitle } from './helpers';
 import { openCategory } from './openCategory';
-
-function PrinterPill() {
-  const mode = detectServingMode(location);
-  const label = mode === 'https' ? 'Démo' : 'Imprimante';
-  return (
-    <span
-      class="printer-pill"
-      data-state="off"
-      role="status"
-      aria-label={
-        mode === 'https'
-          ? 'Version démo : impression impossible depuis cette adresse'
-          : 'Impression pas encore activée'
-      }
-    >
-      <span class="dot" aria-hidden="true" />
-      {label}
-    </span>
-  );
-}
+import { PrinterPill } from './PrinterPill';
 
 export function Header() {
   return (

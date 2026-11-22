@@ -11,6 +11,7 @@ import {
   OrderError,
   type PaymentMethod,
 } from '../domain/order';
+import { canPrint, printOrderWithPrompt } from '../printing/printService';
 import { TopBar } from './TopBar';
 
 export function Checkout() {
@@ -57,6 +58,11 @@ export function Checkout() {
       const order = validateOrder({ method, cashGiven: method === 'cash' ? given : null, bipper });
       showToast(`Commande #${order.number} · Bipper ${order.bipper}`);
       resetTo();
+      if (d.settings.autoPrint && canPrint()) {
+        void printOrderWithPrompt(order.id).then((ok) => {
+          if (ok) showToast(`🖨️ Commande #${order.number} imprimée · Bipper ${order.bipper}`);
+        });
+      }
     } catch (e) {
       showToast(e instanceof OrderError ? e.message : 'Erreur inattendue', 'error');
     }

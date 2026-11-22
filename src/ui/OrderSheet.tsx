@@ -7,6 +7,7 @@ import { formatDate, formatTime } from '../domain/time';
 import { LineOptions } from './Cart';
 import { Icon } from './Icon';
 import { lineIcon } from './helpers';
+import { canPrint, printingIds, printOrderWithPrompt } from '../printing/printService';
 
 const METHOD_LABEL = { card: '💳 Carte', cash: '💶 Espèces', unknown: 'Non renseigné' } as const;
 
@@ -82,6 +83,28 @@ export function OrderSheet({ order: o, onClose }: { order: Order; onClose: () =>
             </>
           )}
         </div>
+        {o.printLog.length > 0 && (
+          <p class="muted print-log">
+            {o.printLog.map((p, i) => (
+              <span key={i}>
+                {p.ok ? '🖨️ imprimé' : '⚠️ échec'} à {formatTime(new Date(p.at))}
+                {i < o.printLog.length - 1 ? ' · ' : ''}
+              </span>
+            ))}
+          </p>
+        )}
+        {canPrint() && (
+          <button
+            type="button"
+            class="btn btn-secondary btn-block"
+            disabled={printingIds.value.has(o.id)}
+            onClick={async () => {
+              if (await printOrderWithPrompt(o.id)) showToast('🖨️ Ticket réimprimé');
+            }}
+          >
+            {printingIds.value.has(o.id) ? 'Envoi…' : '🖨️ Réimprimer'}
+          </button>
+        )}
         <div class="sheet-actions">
           <button
             type="button"

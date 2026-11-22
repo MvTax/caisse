@@ -5,6 +5,29 @@ import type { Order } from '../domain/order';
 import { dayKey, elapsedMinutes, formatElapsed, formatTime } from '../domain/time';
 import { orderSummary, plural } from './helpers';
 import { OrderSheet } from './OrderSheet';
+import {
+  canPrint,
+  lastPrint,
+  printFailed,
+  printingIds,
+  printOrderWithPrompt,
+  printPending,
+} from '../printing/printService';
+
+export function PrintBadge({ o }: { o: Order }) {
+  if (printingIds.value.has(o.id)) return <span class="print-badge sending">🖨️ envoi…</span>;
+  const last = lastPrint(o);
+  if (!last) return null;
+  return last.ok ? (
+    <span class="print-badge ok" aria-label="Ticket imprimé">
+      🖨️ ✓
+    </span>
+  ) : (
+    <span class="print-badge fail" aria-label="Ticket non imprimé">
+      ⚠️ non imprimé
+    </span>
+  );
+}
 import { TopBar } from './TopBar';
 
 function OrderRow({ o, onOpen }: { o: Order; onOpen: () => void }) {
@@ -35,9 +58,21 @@ function OrderRow({ o, onOpen }: { o: Order; onOpen: () => void }) {
             #{o.number} · {formatTime(new Date(o.createdAt))}
             {!done && <span class="elapsed"> · {formatElapsed(o.createdAt, now.value)}</span>}
           </span>
+          <PrintBadge o={o} />
         </span>
         <span class="order-total">{formatCents(o.total)}</span>
       </button>
+      {canPrint() && (
+        <button
+          type="button"
+          class="order-print"
+          aria-label={`Réimprimer la commande ${o.number}`}
+          disabled={printingIds.value.has(o.id)}
+          onClick={() => void printOrderWithPrompt(o.id)}
+        >
+          🖨️
+        </button>
+      )}
       <button
         type="button"
         class="order-delete"
@@ -66,6 +101,7 @@ export function Orders() {
   const todays = d.orders.filter((o) => dayKey(new Date(o.createdAt)) === today);
   const revenue = todays.reduce((s, o) => s + o.total, 0);
   const open = openId ? d.orders.find((o) => o.id === openId) : undefined;
+  const failed = canPrint() ? d.orders.filter(printFailed) : [];
 
   return (
     <div class="screen orders">
@@ -85,6 +121,24 @@ export function Orders() {
             <strong>{pending.length}</strong>
           </div>
         </div>
+
+        {failed.length > 0 && (
+          <div class="print-queue" role="status">
+            <span>⚠️ {plural(failed.length, 'ticket non imprimé', 'tickets non imprimés')}</span>
+            <button
+              type="button"
+              class="btn btn-primary"
+              onClick={async () => {
+                const r = await printPending();
+                if (r.failed === 0)
+                  showToast(`🖨️ ${plural(r.ok, 'ticket imprimé', 'tickets imprimés')}`);
+                else showToast(`${r.failed} ticket(s) toujours en échec`, 'error');
+              }}
+            >
+              Imprimer maintenant
+            </button>
+          </div>
+        )}
 
         <h2 class="section-title">En cours ({pending.length})</h2>
         {pending.length ? (

@@ -7,10 +7,10 @@ import {
   update,
 } from '../app/state';
 import { pop } from '../app/nav';
-import { detectServingMode, DEFAULT_BRIDGE_URL } from '../app/env';
 import type { Settings as S } from '../storage/settings';
 import { parseBipperList } from '../domain/order';
 import { plural } from './helpers';
+import { PrintSettings } from './PrintSettings';
 import { TopBar } from './TopBar';
 
 function setSetting<K extends keyof S>(key: K, value: S[K]) {
@@ -48,24 +48,11 @@ function NumberRow(props: {
 
 export function Settings() {
   const st = data.value.settings;
-  const mode = detectServingMode(location);
   return (
     <div class="screen settings ios">
       <TopBar title="Réglages" onBack={pop} backLabel="Accueil" />
       <main class="content">
-        <h2 class="ios-group-title">Impression</h2>
-        <div class="ios-group">
-          <div class="ios-row">
-            <span class="ios-row-text">
-              Ticket de préparation
-              <small>
-                {mode === 'https'
-                  ? `Version démo : pour imprimer, ouvre l’app depuis ${DEFAULT_BRIDGE_URL}.`
-                  : 'L’impression arrive à la prochaine étape (passerelle sur la caisse).'}
-              </small>
-            </span>
-          </div>
-        </div>
+        <PrintSettings />
 
         <h2 class="ios-group-title">Commandes</h2>
         <div class="ios-group">

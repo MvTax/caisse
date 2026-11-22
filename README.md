@@ -7,7 +7,8 @@ fiscal) avec impression des tickets sur l'imprimante thermique de la boutique.
 
 - Version en ligne (démo, sans impression) : https://mvtax.github.io/caisse/
 - En boutique : l'app est ouverte depuis l'adresse affichée par la passerelle sur la caisse
-  (guide à venir dans `docs/GUIDE_BOUTIQUE.md`).
+  (`http://192.168.1.122:8080`) — **[guide pas à pas](docs/GUIDE_BOUTIQUE.md)**,
+  [dépannage](docs/DEPANNAGE.md).
 
 ## Développement
 

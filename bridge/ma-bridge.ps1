@@ -276,8 +276,9 @@ function Invoke-Request($Ctx) {
   try {
     if ($method -eq 'OPTIONS') { Send-Bytes $Ctx 204 'text/plain' ([byte[]]@()); return }
     if ($method -eq 'GET' -and ($path -eq '/' -or $path -eq '/index.html')) {
+      $client = [string]$req.RemoteEndPoint.Address
       Send-Bytes $Ctx 200 'text/html; charset=utf-8' $script:AppBytes
-      Write-Log ('App envoyee a ' + $req.RemoteEndPoint.Address) 'DarkGray'
+      Write-Log ('App envoyee a ' + $client) 'DarkGray'
       return
     }
     if ($method -eq 'GET' -and $path -eq '/api/health') { Invoke-Health $Ctx; return }
