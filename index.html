@@ -148,6 +148,8 @@
   .online ol { margin: 0; padding-left: 20px; }
   .online li { margin-bottom: 6px; }
   .online pre { white-space: pre-wrap; word-break: break-all; background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 12px; margin: 6px 0; }
+  .ver { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  textarea.report { font-size: 12px; margin-top: 8px; background: #fbfaf7; }
   .notice { margin: 10px 0 0; padding: 8px 10px; border-radius: 6px; background: #fbeae6; color: var(--danger); font-size: 14px; }
   .notice[hidden] { display: none; }
 
@@ -167,7 +169,8 @@
 
 <header>
   <h1>Testeur d'impression</h1>
-  <p>Écrivez du texte ou simulez un ticket de caisse, puis imprimez.</p>
+  <p>Écrivez du texte ou simulez un ticket de caisse, puis imprimez. <span class="ver">Version 2026-11-22.6</span></p>
+  <p class="notice" id="bootError" hidden></p>
 </header>
 
 <main>
@@ -188,8 +191,9 @@
         </div>
       </div>
       <div class="actions" style="margin-top:10px">
+        <button class="btn primary" id="epFull" type="button">🧪 Test complet + rapport</button>
         <button class="btn" id="epTest" type="button">🔧 Tester</button>
-        <button class="btn primary" id="epWifi" type="button">📶 Imprimer en Wi-Fi</button>
+        <button class="btn" id="epWifi" type="button">📶 Imprimer en Wi-Fi</button>
         <button class="btn" id="epBt" type="button">🔵 Imprimer en Bluetooth</button>
       </div>
       <details class="steps" id="epHelp">
@@ -212,6 +216,12 @@
         </ol>
       </details>
       <ol class="diag" id="epOut"></ol>
+      <div id="epReport" hidden>
+        <textarea class="report" id="epReportText" rows="14" readonly></textarea>
+        <div class="actions" style="margin-top:8px">
+          <button class="btn primary" id="epCopy" type="button">📋 Copier le rapport</button>
+        </div>
+      </div>
     </div>
 
     <div class="card" id="diagCard">
@@ -424,6 +434,19 @@ Tél. 01 23 45 67 89</textarea>
 
 <div id="printArea"></div>
 
+<script>
+  // Garde-fou : note toute erreur JavaScript, et prévient si la page n'a pas démarré.
+  window.__errs = [];
+  window.addEventListener('error', (e) => { window.__errs.push((e.message || 'erreur') + (e.lineno ? ' (ligne ' + e.lineno + ')' : '')); });
+  window.addEventListener('unhandledrejection', (e) => { window.__errs.push('promesse rejetée : ' + ((e.reason && e.reason.message) || e.reason)); });
+  window.addEventListener('load', () => {
+    if (window.__ready) return;
+    const b = document.getElementById('bootError');
+    b.hidden = false;
+    b.textContent = 'La page n\'a pas pu démarrer (les boutons ne marcheront pas). Erreur : ' + (window.__errs.join(' | ') || 'inconnue')
+      + '. Envoyez une capture de ce message.';
+  });
+</script>
 <script>
 (() => {
   const $ = (s) => document.querySelector(s);
@@ -1288,6 +1311,7 @@ Tél. 01 23 45 67 89</textarea>
 
   async function epTest() {
     $('#epOut').replaceChildren();
+    $('#epOut').scrollIntoView({ behavior: 'smooth', block: 'center' });
     if (!needIp()) return;
     const done = pending(`Connexion à ${epIp()} en Wi-Fi…`, '#epOut');
     try {
@@ -1332,6 +1356,147 @@ Tél. 01 23 45 67 89</textarea>
           + 'ajoutez-y l\'imprimante en Bluetooth, puis réessayez. Si Safari a demandé « Ouvrir dans l\'app ? », acceptez.', [], '#epOut');
       }
     }, 2500);
+  }
+
+  // ---------- Test complet Epson + rapport copiable ----------
+  const TESTEUR_VERSION = '2026-11-22.6';
+
+  function withTimeout(ms) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), ms);
+    return { signal: ctrl.signal, done: () => clearTimeout(t) };
+  }
+
+  // Lance une requête et décrit précisément ce qui s'est passé (sans jamais lever d'erreur).
+  async function probe(url, opts, ms = 8000) {
+    const t0 = performance.now();
+    const to = withTimeout(ms);
+    try {
+      const r = await fetch(url, { credentials: 'omit', cache: 'no-store', ...opts, signal: to.signal });
+      const out = { ok: true, ms: Math.round(performance.now() - t0), type: r.type, status: r.status };
+      if (r.type !== 'opaque') {
+        out.ctype = r.headers.get('Content-Type');
+        try { out.body = (await r.text()).slice(0, 400); } catch (e) { out.body = '(illisible : ' + e.message + ')'; }
+      }
+      return out;
+    } catch (e) {
+      const ms2 = Math.round(performance.now() - t0);
+      return { ok: false, ms: ms2, err: e.name === 'AbortError' ? 'délai dépassé (' + ms + ' ms)' : `${e.name}: ${e.message}` };
+    } finally { to.done(); }
+  }
+
+  function describe(r) {
+    if (!r.ok) return `ÉCHEC en ${r.ms} ms — ${r.err}`;
+    if (r.type === 'opaque') return `RÉPONSE REÇUE (opaque, contenu illisible) en ${r.ms} ms`;
+    const res = r.body ? (r.body.match(/<response[^>]*>/) || [])[0] : null;
+    return `HTTP ${r.status} en ${r.ms} ms · type=${r.ctype || '-'}`
+      + (res ? ` · ${res}` : r.body ? ` · corps: ${r.body.replace(/\s+/g, ' ').slice(0, 160)}` : '');
+  }
+
+  let lastReport = '';
+  async function epFullTest() {
+    const btn = $('#epFull');
+    btn.disabled = true;
+    const label = btn.textContent;
+    btn.textContent = '⏳ Test en cours…';
+    $('#epOut').replaceChildren();
+    $('#epReport').hidden = true;
+    $('#epOut').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    saveEp();
+    const ip = epIp();
+    const lines = [];
+    const log = (s) => lines.push(s);
+    const step = async (title, fn) => {
+      const done = pending(title, '#epOut');
+      let res;
+      try { res = await fn(); } catch (e) { res = { ok: false, err: `${e.name}: ${e.message}` }; }
+      const txt = res.text || describe(res);
+      done(res.ok ? 'ok' : 'err', title, esc(txt));
+      log(`[${res.ok ? 'OK' : 'XX'}] ${title} : ${txt}`);
+      return res;
+    };
+
+    try {
+      log('=== RAPPORT TESTEUR D\'IMPRESSION ===');
+      log(`Version testeur : ${TESTEUR_VERSION}`);
+      log(`Date : ${new Date().toLocaleString('fr-FR')} (${Intl.DateTimeFormat().resolvedOptions().timeZone})`);
+      log(`Page : ${location.href}`);
+      log(`Navigateur : ${navigator.userAgent}`);
+      log(`iOS : ${IS_IOS} · contexte sécurisé : ${window.isSecureContext} · en ligne : ${navigator.onLine} · dans un cadre : ${inFrame()}`);
+      log(`Imprimante : IP=${ip || '(vide)'} · protocole=${$('#epProto').value} · papier=${$('#paper').value} · colonnes=${$('#cols').value}`);
+      log(`Erreurs JavaScript avant le test : ${window.__errs.length ? window.__errs.join(' | ') : 'aucune'}`);
+      log('');
+
+      if (!/^\d{1,3}(\.\d{1,3}){3}(:\d+)?$/.test(ip)) {
+        report('err', 'IP invalide', esc(ip || 'vide'), [], '#epOut');
+        log('[XX] IP invalide, test arrêté.');
+      } else {
+        const H = `https://${ip}`;
+        const svc = `/cgi-bin/epos/service.cgi?devid=local_printer&timeout=10000`;
+        const statusXml = soap(`<epos-print xmlns="${EPOS_NS}"/>`);
+        const fullHeaders = { 'Content-Type': 'text/xml; charset=utf-8', 'If-Modified-Since': 'Thu, 01 Jan 1970 00:00:00 GMT', 'SOAPAction': '""' };
+
+        await step('1. Page d\'accueil https (sans lecture)', () => probe(H + '/', { mode: 'no-cors' }));
+        await step('2. Service ePOS https en GET (avec lecture)', () => probe(H + svc, { mode: 'cors' }));
+        const d = await step('3. Demande d\'état ePOS, méthode normale (en-têtes complets)', () => probe(H + svc, { method: 'POST', mode: 'cors', headers: fullHeaders, body: statusXml }, 12000));
+        await step('4. Demande d\'état ePOS, Content-Type seul', () => probe(H + svc, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/xml; charset=utf-8' }, body: statusXml }, 12000));
+        await step('5. Demande d\'état ePOS, requête simple (text/plain)', () => probe(H + svc, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain' }, body: statusXml }, 12000));
+        await step('6. Demande d\'état ePOS, sans lecture (no-cors)', () => probe(H + svc, { method: 'POST', mode: 'no-cors', body: statusXml }, 12000));
+        await step('7. Port 8043 (ePOS sécurisé, sans lecture)', () => probe(`https://${ip.split(':')[0]}:8043/`, { mode: 'no-cors' }, 6000));
+        await step('8. Port 8008 (ePOS non sécurisé, sans lecture)', () => probe(`http://${ip.split(':')[0]}:8008/`, { mode: 'no-cors' }, 6000));
+        await step('9. http simple (sans lecture)', () => probe(`http://${ip}/`, { mode: 'no-cors' }, 6000));
+
+        const blindXml = soap(eposPrintXml([
+          { t: 'text', s: 'TEST ENVOI SIMPLE', align: 'center', bold: true, big: true },
+          { t: 'text', s: new Date().toLocaleString('fr-FR'), align: 'center' },
+          { t: 'text', s: 'Si ce ticket sort, l\'impression', align: 'center' },
+          { t: 'text', s: 'depuis l\'iPhone est possible.', align: 'center' },
+        ]));
+        const blind = await step('10. Impression d\'un petit ticket « TEST ENVOI SIMPLE » (sans lecture)', () =>
+          probe(H + svc, { method: 'POST', mode: 'no-cors', body: blindXml }, 12000));
+
+        log('');
+        if (d.ok && d.body && /success="true"/.test(d.body)) {
+          log('CONCLUSION : la méthode normale fonctionne.');
+        } else if (blind.ok) {
+          log('CONCLUSION PROVISOIRE : l\'imprimante reçoit les envois, mais le navigateur ne peut pas lire ses réponses.');
+        } else {
+          log('CONCLUSION PROVISOIRE : le navigateur n\'arrive pas à envoyer de données à l\'imprimante.');
+        }
+        report('info', 'Un petit ticket « TEST ENVOI SIMPLE » est-il sorti ?', 'Répondez, la réponse est ajoutée au rapport.', [
+          ['Oui, il est sorti', () => answerBlind('OUI')],
+          ['Non, rien', () => answerBlind('NON')],
+        ], '#epOut');
+      }
+    } catch (e) {
+      log(`[XX] Erreur inattendue du test : ${e.name}: ${e.message}`);
+    } finally {
+      log(`Erreurs JavaScript pendant le test : ${window.__errs.length ? window.__errs.join(' | ') : 'aucune'}`);
+      log('=== FIN DU RAPPORT ===');
+      lastReport = lines.join('\n');
+      $('#epReportText').value = lastReport;
+      $('#epReport').hidden = false;
+      btn.disabled = false;
+      btn.textContent = label;
+    }
+  }
+
+  function answerBlind(ans) {
+    lastReport = lastReport.replace(/\n=== FIN DU RAPPORT ===$/, '') + `\nTicket « TEST ENVOI SIMPLE » sorti : ${ans}\n=== FIN DU RAPPORT ===`;
+    $('#epReportText').value = lastReport;
+    report(ans === 'OUI' ? 'ok' : 'warn', `Noté : ticket sorti = ${ans}`, 'Copiez maintenant le rapport ci-dessous.', [], '#epOut');
+    $('#epReport').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  async function copyReport() {
+    const ta = $('#epReportText');
+    let ok = false;
+    try { await navigator.clipboard.writeText(ta.value); ok = true; } catch (e) {
+      ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length);
+      try { ok = document.execCommand('copy'); } catch (e2) { ok = false; }
+    }
+    $('#epCopy').textContent = ok ? '✅ Copié ! Collez-le dans la conversation' : 'Sélectionnez le texte et copiez-le à la main';
+    setTimeout(() => { $('#epCopy').textContent = '📋 Copier le rapport'; }, 4000);
   }
 
   // ---------- Événements ----------
@@ -1386,6 +1551,8 @@ Tél. 01 23 45 67 89</textarea>
   $('#download').addEventListener('click', download);
   $('#diagBtn').addEventListener('click', runDiag);
   $('#epTest').addEventListener('click', epTest);
+  $('#epFull').addEventListener('click', epFullTest);
+  $('#epCopy').addEventListener('click', copyReport);
   $('#epWifi').addEventListener('click', epWifi);
   $('#epBt').addEventListener('click', epBluetooth);
   $('#epIp').addEventListener('input', saveEp);
@@ -1430,6 +1597,7 @@ Tél. 01 23 45 67 89</textarea>
 
   renderItems();
   update();
+  window.__ready = true;
 })();
 </script>
 </body>
