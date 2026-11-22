@@ -125,6 +125,19 @@
   .paper .r.b { font-weight: 700; }
   .paper .r.big { font-size: 2em; line-height: 1.15; }
 
+  .diag { list-style: none; padding: 0; margin: 12px 0 0; }
+  .diag:empty { display: none; }
+  .diag li { display: grid; grid-template-columns: 24px 1fr; gap: 4px 6px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .diag li .i { font-size: 15px; line-height: 1.35; }
+  .diag li .d { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .diag li .d code { background: var(--accent-soft); color: var(--ink); padding: 0 4px; border-radius: 3px; }
+  .diag li .a { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .diag li .a .btn { padding: 4px 10px; font-size: 13px; }
+  .diag li.err b { color: var(--danger); }
+  .diag li.ok b { color: var(--accent); }
+  .notice { margin: 10px 0 0; padding: 8px 10px; border-radius: 6px; background: #fbeae6; color: var(--danger); font-size: 14px; }
+  .notice[hidden] { display: none; }
+
   #printArea { position: absolute; left: -10000px; top: 0; }
   #printArea .paper { box-shadow: none; }
 
@@ -146,6 +159,26 @@
 
 <main>
   <section>
+    <div class="card" id="diagCard">
+      <h2>Diagnostic</h2>
+      <div class="grid3">
+        <div style="grid-column: span 2">
+          <label for="ip">IP de l'imprimante (si elle est en réseau)</label>
+          <input id="ip" type="text" placeholder="ex. 192.168.1.50" autocomplete="off" spellcheck="false">
+        </div>
+        <div>
+          <label for="ipPort">Port</label>
+          <input id="ipPort" type="number" min="1" max="65535" value="9100">
+        </div>
+      </div>
+      <div class="actions" style="margin-top:10px">
+        <button class="btn primary" id="diagBtn" type="button">🔧 Lancer le test</button>
+        <button class="btn" id="scanBtn" type="button">🔍 Chercher les imprimantes réseau</button>
+        <button class="btn" id="ipPrintBtn" type="button">🖨 Imprimer sur l'IP</button>
+      </div>
+      <ol class="diag" id="diagOut"></ol>
+    </div>
+
     <div class="card">
       <h2>Papier</h2>
       <div class="grid3">
@@ -256,6 +289,7 @@ Tél. 01 23 45 67 89</textarea>
       <div class="actions">
         <button class="btn primary big" id="printBtn" type="button">🖨 Imprimer</button>
       </div>
+      <p class="notice" id="printMsg" hidden></p>
       <p class="help">Ouvre la boîte d'impression du navigateur : choisissez votre imprimante (thermique, laser, PDF…).
         Pour une imprimante ticket, mettez les marges à « Aucune » et l'échelle à 100 %.</p>
     </div>
@@ -602,8 +636,22 @@ Tél. 01 23 45 67 89</textarea>
     }
     $('#page-style').textContent = pageCss;
     for (let i = 1; i < copies; i++) area.appendChild(one.cloneNode(true));
-    window.print();
+    printState = { clicked: true, opened: false };
+    $('#printMsg').hidden = true;
+    try { window.print(); } catch (e) { /* bloqué */ }
+    // Si la boîte d'impression ne s'est pas ouverte, on le dit au lieu de ne rien faire.
+    setTimeout(() => {
+      if (printState.opened) return;
+      const m = $('#printMsg');
+      m.hidden = false;
+      m.textContent = inFrame()
+        ? 'La boîte d\'impression ne s\'est pas ouverte : la page est affichée dans un aperçu intégré qui bloque l\'impression. Ouvrez index.html directement dans Chrome ou Edge (ou lancez lancer.bat / lancer.sh).'
+        : 'La boîte d\'impression ne s\'est pas ouverte. Cliquez sur « Lancer le test » dans Diagnostic pour trouver la cause.';
+    }, 1500);
   }
+  let printState = { clicked: false, opened: false };
+  window.addEventListener('beforeprint', () => { printState.opened = true; });
+  function inFrame() { try { return window.self !== window.top; } catch (e) { return true; } }
 
   // ---------- ESC/POS ----------
   const CP850 = {
@@ -646,17 +694,17 @@ Tél. 01 23 45 67 89</textarea>
     return out;
   }
 
-  function escposBytes() {
+  function escposBytes(override) {
     const cp = $('#codepage').value;
     const sp = spec();
-    const lines = currentLines().map((l) => ({
+    const lines = (override || currentLines()).map((l) => ({
       ...l,
       s: l.s !== undefined ? sanitize(l.s, cp) : undefined,
       l: l.l !== undefined ? sanitize(l.l, cp) : undefined,
       r: l.r !== undefined ? sanitize(l.r, cp) : undefined,
     }));
     const rows = layout(lines, sp.W);
-    const copies = Math.max(1, Math.min(20, parseInt($('#copies').value, 10) || 1));
+    const copies = override ? 1 : Math.max(1, Math.min(20, parseInt($('#copies').value, 10) || 1));
     const b = [0x1B, 0x40]; // ESC @ : initialisation
     if (cp === 'cp858') b.push(0x1B, 0x74, 19);
     if (cp === 'cp850') b.push(0x1B, 0x74, 2);
@@ -670,7 +718,7 @@ Tél. 01 23 45 67 89</textarea>
       if ($('#cut').checked) b.push(0x1D, 0x56, 0x42, 0x03); // GS V B : avance + coupe partielle
       else b.push(0x1B, 0x64, 4);                          // ESC d 4 : avance 4 lignes
     }
-    if ($('#drawerAfter').checked) b.push(...DRAWER);
+    if (!override && $('#drawerAfter').checked) b.push(...DRAWER);
     return new Uint8Array(b);
   }
   const DRAWER = [0x1B, 0x70, 0x00, 0x19, 0xFA]; // ESC p 0 : impulsion tiroir
@@ -759,6 +807,234 @@ Tél. 01 23 45 67 89</textarea>
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
 
+
+  // ---------- Serveur local + diagnostic ----------
+  const API = location.protocol.startsWith('http') ? '' : 'http://127.0.0.1:8642';
+  const SERVER_HELP = 'Lancez <code>lancer.bat</code> (Windows) ou <code>lancer.sh</code> (Mac/Linux), '
+    + 'ou <code>python3 serveur.py</code>, puis utilisez la page qui s\'ouvre sur <code>http://127.0.0.1:8642</code>. '
+    + 'Python 3 est nécessaire (python.org).';
+
+  async function api(path, body, timeout = 20000) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeout);
+    try {
+      const r = await fetch(API + path, body
+        ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctrl.signal }
+        : { signal: ctrl.signal });
+      const j = await r.json().catch(() => ({ error: `réponse inattendue (HTTP ${r.status})` }));
+      if (!r.ok) throw new Error(j.error || 'HTTP ' + r.status);
+      return j;
+    } catch (e) {
+      if (e.name === 'AbortError') throw new Error('délai dépassé');
+      if (e instanceof TypeError) throw new Error('serveur local injoignable');
+      throw e;
+    } finally { clearTimeout(t); }
+  }
+
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const ICONS = { ok: '✅', warn: '⚠️', err: '❌', info: 'ℹ️', run: '⏳' };
+
+  // Ajoute une ligne de résultat. detail est du HTML déjà échappé.
+  function report(kind, title, detail = '', actions = []) {
+    const li = document.createElement('li');
+    li.className = kind;
+    li.innerHTML = `<span class="i">${ICONS[kind]}</span><div><b>${esc(title)}</b>${detail ? `<div class="d">${detail}</div>` : ''}</div>`;
+    if (actions.length) {
+      const a = document.createElement('div');
+      a.className = 'a';
+      for (const [label, fn] of actions) {
+        const btn = document.createElement('button');
+        btn.className = 'btn'; btn.type = 'button'; btn.textContent = label;
+        btn.addEventListener('click', () => fn(btn));
+        a.appendChild(btn);
+      }
+      li.lastElementChild.appendChild(a);
+    }
+    $('#diagOut').appendChild(li);
+    return li;
+  }
+  function pending(title) {
+    const li = report('run', title);
+    return (kind, t, detail, actions) => { const n = report(kind, t, detail, actions); li.replaceWith(n); return n; };
+  }
+
+  function getIp() {
+    const ip = $('#ip').value.trim();
+    try { localStorage.setItem('testeur.ip', ip); localStorage.setItem('testeur.port', $('#ipPort').value); } catch (e) {}
+    return ip;
+  }
+  const getPort = () => parseInt($('#ipPort').value, 10) || 9100;
+
+  function toB64(u8) {
+    let s = '';
+    for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+    return btoa(s);
+  }
+
+  function netTestLines(ip, port) {
+    return [
+      { t: 'text', s: 'TEST RESEAU OK', align: 'center', bold: true, big: true },
+      { t: 'sep' },
+      { t: 'cols', l: 'Imprimante', r: `${ip}:${port}` },
+      { t: 'cols', l: 'Date', r: new Date().toLocaleString('fr-FR') },
+      { t: 'text', s: 'Accents : é è à ç ù € °' },
+      { t: 'sep' },
+      { t: 'text', s: 'Si vous lisez ceci, la connexion fonctionne.', align: 'center' },
+    ];
+  }
+
+  async function sendToIp(bytes, label, btn) {
+    const ip = getIp(), port = getPort();
+    if (!ip) { report('warn', 'Saisissez d\'abord l\'IP de l\'imprimante.'); $('#ip').focus(); return; }
+    if (btn) btn.disabled = true;
+    const done = pending(`${label} → ${ip}:${port}…`);
+    try {
+      const r = await api('/api/print', { ip, port, data: toB64(bytes) });
+      done('ok', `${label} envoyé à ${r.ip}:${r.port}`, `${r.sent} octets transmis. Si rien ne sort : vérifiez le papier, le capot, ou essayez un autre jeu de caractères / le port 9100.`);
+    } catch (e) {
+      done('err', `Échec de l'envoi à ${ip}:${port}`, esc(e.message) + (/injoignable/.test(e.message) ? '<br>' + SERVER_HELP : ''));
+    } finally { if (btn) btn.disabled = false; }
+  }
+
+  async function runDiag() {
+    const out = $('#diagOut');
+    out.replaceChildren();
+    $('#diagBtn').disabled = true;
+    try {
+      // 1. Navigateur
+      const ua = navigator.userAgent;
+      const browser = /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'navigateur inconnu';
+      report('info', `Navigateur : ${browser}`, `Page ouverte via <code>${esc(location.protocol.replace(':', ''))}</code>`
+        + ` · WebUSB ${navigator.usb ? 'oui' : 'non'} · port série ${navigator.serial ? 'oui' : 'non'}`);
+
+      // 2. Boîte d'impression du navigateur
+      if (inFrame()) {
+        report('err', 'Page affichée dans un aperçu intégré', 'Dans ce cadre, le navigateur bloque l\'impression : le bouton Imprimer ne fait rien. '
+          + 'Ouvrez <code>index.html</code> directement dans Chrome ou Edge, ou lancez <code>lancer.bat</code> / <code>lancer.sh</code>.');
+      } else if (printState.clicked && !printState.opened) {
+        report('err', 'La boîte d\'impression ne s\'est pas ouverte', 'Le navigateur a refusé d\'afficher l\'impression. Essayez Ctrl+P, ou un autre navigateur.');
+      } else if (printState.opened) {
+        report('ok', 'La boîte d\'impression s\'ouvre bien', 'Si rien ne sort ensuite, le problème vient de l\'imprimante choisie dans la boîte (voir ci-dessous).');
+      } else {
+        report('info', 'Boîte d\'impression pas encore testée', '', [['Tester maintenant', () => printBrowser()]]);
+      }
+
+      // 3. Serveur local
+      let server = null;
+      let done = pending('Serveur local…');
+      try {
+        server = await api('/api/ping', null, 4000);
+        done('ok', 'Serveur local actif', `${esc(server.os)} · Python ${esc(server.python)} · IP de ce poste : ${esc(server.local_ips.join(', ') || '?')}`);
+      } catch (e) {
+        done('err', 'Serveur local non démarré', 'Sans lui, impossible de tester une IP ou d\'imprimer en réseau. ' + SERVER_HELP);
+      }
+
+      // 4. Imprimantes installées
+      if (server) {
+        done = pending('Imprimantes installées…');
+        try {
+          const r = await api('/api/printers');
+          if (!r.printers.length) {
+            done('warn', 'Aucune imprimante installée sur ce poste', (r.note ? esc(r.note) + '<br>' : '')
+              + 'Le bouton Imprimer du navigateur ne pourra produire qu\'un PDF. Installez le pilote de l\'imprimante, ou imprimez en direct sur son IP.');
+          } else {
+            const li = done('ok', `${r.printers.length} imprimante${r.printers.length > 1 ? 's' : ''} installée${r.printers.length > 1 ? 's' : ''}`,
+              r.printers.map((p) => `${esc(p.name)}${p.name === r.default ? ' <i>(par défaut)</i>' : ''}`
+                + `${p.port ? ' · ' + esc(p.port) : ''}${p.status ? ' · ' + esc(p.status) : ''}`).join('<br>'),
+              r.printers.map((p) => [`Page texte → ${p.name}`, async (btn) => {
+                btn.disabled = true;
+                const d = pending(`Impression d'une page texte sur ${p.name}…`);
+                try {
+                  await api('/api/print-system', { printer: p.name, text: `TEST D'IMPRESSION\n\nImprimante : ${p.name}\nDate : ${new Date().toLocaleString('fr-FR')}\n\nSi vous lisez ceci, le pilote fonctionne.\n` }, 40000);
+                  d('ok', `Page texte envoyée à ${p.name}`, 'Envoyée par le système (sans passer par le navigateur).');
+                } catch (e) { d('err', `Échec sur ${p.name}`, esc(e.message)); }
+                btn.disabled = false;
+              }]));
+            // Repère les imprimantes réseau dans les ports installés
+            const ipsInPorts = r.printers.map((p) => (String(p.port).match(/\b(\d{1,3}(?:\.\d{1,3}){3})\b/) || [])[1]).filter(Boolean);
+            if (ipsInPorts.length && !$('#ip').value.trim()) {
+              report('info', 'IP trouvée dans la configuration', esc(ipsInPorts.join(', ')),
+                ipsInPorts.map((ip) => [`Tester ${ip}`, () => { $('#ip').value = ip; runDiag(); }]));
+            }
+            void li;
+          }
+        } catch (e) { done('err', 'Liste des imprimantes illisible', esc(e.message)); }
+      }
+
+      // 5. Imprimante réseau
+      const ip = getIp(), port = getPort();
+      if (!ip) {
+        report('info', 'Aucune IP saisie', 'Si l\'imprimante est en réseau (câble Ethernet ou Wi-Fi), saisissez son IP ou cliquez sur « Chercher les imprimantes réseau ». '
+          + 'Astuce : sur la plupart des imprimantes ticket, maintenir le bouton FEED à l\'allumage imprime une page avec l\'IP.');
+      } else if (!/^[a-z0-9.\-]+$/i.test(ip)) {
+        report('err', 'IP invalide', `« ${esc(ip)} » : une IP ressemble à <code>192.168.1.50</code>.`);
+      } else if (server) {
+        done = pending(`Test de ${ip}…`);
+        try {
+          const r = await api('/api/check', { ip, port }, 30000);
+          done('info', `Imprimante ${r.ip}`);
+          const p = r.ports[String(r.port)];
+          if (r.ping.ok === true) report('ok', 'Répond au ping', `${r.ping.ms} ms`);
+          else if (r.ping.ok === null) report('info', 'Ping non disponible', esc(r.ping.detail));
+          else report(p.open ? 'info' : 'err', p.open ? 'Ne répond pas au ping (normal pour certaines imprimantes)' : 'Ne répond pas au ping',
+            p.open ? '' : 'Vérifiez qu\'elle est allumée, branchée au réseau, et que l\'IP est la bonne.');
+
+          const mine = (server.local_ips || []).map((x) => x.split('.').slice(0, 3).join('.'));
+          if (mine.length && /^\d+\.\d+\.\d+\.\d+$/.test(r.ip) && !r.ip.startsWith('127.') && !mine.includes(r.ip.split('.').slice(0, 3).join('.'))) {
+            report('warn', 'Pas sur le même réseau que ce poste', `Ce poste : ${esc(server.local_ips.join(', '))} · imprimante : ${esc(r.ip)}. `
+              + 'Si la connexion échoue, changez l\'IP de l\'imprimante (ou du poste) pour qu\'elles commencent pareil.');
+          }
+
+          if (p.open) report('ok', `Port ${r.port} ouvert`, `Connexion en ${p.ms} ms : l'imprimante accepte les impressions directes.`);
+          else report('err', `Port ${r.port} inaccessible`, esc(p.err) + '. ' + (r.port === 9100 ? 'L\'impression brute (RAW / JetDirect) est peut-être désactivée, ou ce n\'est pas une imprimante.' : 'Essayez le port 9100.'));
+
+          const others = Object.entries(r.ports).filter(([k]) => +k !== r.port)
+            .map(([k, v]) => `${k} ${({ 9100: '(RAW)', 515: '(LPD)', 631: '(IPP)', 80: '(web)' })[k] || ''} : ${v.open ? 'ouvert' : 'fermé'}`);
+          report('info', 'Autres ports', esc(others.join(' · '))
+            + (r.ports['80'] && r.ports['80'].open ? ` — page de configuration : <a href="http://${esc(r.ip)}" target="_blank" rel="noopener">http://${esc(r.ip)}</a>` : ''));
+
+          if (r.status) {
+            if (!r.status.answered) report('info', 'État papier/capot non communiqué', 'L\'imprimante ne répond pas à la demande d\'état ESC/POS (fréquent, sans gravité).');
+            else if (r.status.problems.length) report('err', 'L\'imprimante signale un problème', esc(r.status.problems.join(', ')));
+            else report('ok', 'Imprimante prête', 'Papier présent, capot fermé, en ligne.');
+          }
+
+          if (p.open) {
+            report('info', 'Dernière étape : imprimer pour de vrai', '', [
+              ['🖨 Envoyer un ticket de test', (btn) => sendToIp(escposBytes(netTestLines(r.ip, r.port)), 'Ticket de test', btn)],
+              ['Envoyer l\'aperçu actuel', (btn) => sendToIp(escposBytes(), 'Aperçu', btn)],
+            ]);
+          }
+        } catch (e) {
+          done('err', `Test de ${ip} impossible`, esc(e.message));
+        }
+      } else {
+        report('warn', `IP ${ip} non testée`, 'Démarrez d\'abord le serveur local (voir plus haut).');
+      }
+    } finally {
+      $('#diagBtn').disabled = false;
+    }
+  }
+
+  async function runScan() {
+    $('#scanBtn').disabled = true;
+    $('#diagOut').replaceChildren();
+    const done = pending(`Recherche des imprimantes réseau (port ${getPort()})… environ 10 secondes`);
+    try {
+      const r = await api('/api/scan', { port: getPort() }, 90000);
+      if (!r.found.length) {
+        done('warn', 'Aucune imprimante trouvée', `${r.scanned} adresses testées sur ${esc(r.networks.join(', ') || 'aucun réseau')}. `
+          + 'L\'imprimante est peut-être en USB, éteinte, ou sur un autre réseau.');
+      } else {
+        done('ok', `${r.found.length} appareil${r.found.length > 1 ? 's' : ''} avec le port ${getPort()} ouvert`,
+          r.found.map((f) => esc(f.ip) + (f.name ? ` · ${esc(f.name)}` : '')).join('<br>'),
+          r.found.map((f) => [`Utiliser ${f.ip}`, () => { $('#ip').value = f.ip; runDiag(); }]));
+      }
+    } catch (e) {
+      done('err', 'Recherche impossible', esc(e.message) + (/injoignable/.test(e.message) ? '<br>' + SERVER_HELP : ''));
+    } finally { $('#scanBtn').disabled = false; }
+  }
+
   // ---------- Événements ----------
   $('#freeText').value = [
     '# Bonjour !',
@@ -809,6 +1085,14 @@ Tél. 01 23 45 67 89</textarea>
   $('#rawPrint').addEventListener('click', () => send(escposBytes(), 'Ticket'));
   $('#drawer').addEventListener('click', () => send(new Uint8Array(DRAWER), 'Ouverture tiroir'));
   $('#download').addEventListener('click', download);
+  $('#diagBtn').addEventListener('click', runDiag);
+  $('#scanBtn').addEventListener('click', runScan);
+  $('#ipPrintBtn').addEventListener('click', (e) => { $('#diagOut').replaceChildren(); sendToIp(escposBytes(), 'Impression', e.currentTarget); });
+  $('#ip').addEventListener('keydown', (e) => { if (e.key === 'Enter') runDiag(); });
+  try {
+    $('#ip').value = localStorage.getItem('testeur.ip') || '';
+    $('#ipPort').value = localStorage.getItem('testeur.port') || '9100';
+  } catch (e) {}
   window.addEventListener('resize', update);
 
   renderItems();
