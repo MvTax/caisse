@@ -1,4 +1,4 @@
-import { useEffect } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { deleteOrder, menu, setOrderDone, showToast } from '../app/state';
 import { lineLabel, lineTotal, sortForKitchen } from '../domain/cart';
 import { formatCents } from '../domain/money';
@@ -7,7 +7,12 @@ import { formatDate, formatTime } from '../domain/time';
 import { LineOptions } from './Cart';
 import { Icon } from './Icon';
 import { lineIcon } from './helpers';
-import { canPrint, printingIds, printOrderWithPrompt } from '../printing/printService';
+import {
+  canPrint,
+  printingIds,
+  printInvoice,
+  printOrderWithPrompt,
+} from '../printing/printService';
 
 const METHOD_LABEL = { card: '💳 Carte', cash: '💶 Espèces', unknown: 'Non renseigné' } as const;
 
@@ -20,6 +25,7 @@ export function OrderSheet({ order: o, onClose }: { order: Order; onClose: () =>
   }, [onClose]);
   const created = new Date(o.createdAt);
   const done = o.status === 'done';
+  const [invoiceBusy, setInvoiceBusy] = useState(false);
   return (
     <div class="sheet-backdrop" onClick={onClose}>
       <div
@@ -103,6 +109,22 @@ export function OrderSheet({ order: o, onClose }: { order: Order; onClose: () =>
             }}
           >
             {printingIds.value.has(o.id) ? 'Envoi…' : '🖨️ Réimprimer'}
+          </button>
+        )}
+        {canPrint() && (
+          <button
+            type="button"
+            class="btn btn-secondary btn-block"
+            disabled={invoiceBusy}
+            onClick={async () => {
+              setInvoiceBusy(true);
+              const r = await printInvoice(o.id);
+              setInvoiceBusy(false);
+              if (r.ok) showToast('🧾 Facture sans détail imprimée');
+              else showToast(r.error.message, 'error');
+            }}
+          >
+            {invoiceBusy ? 'Envoi…' : '🧾 Facture sans détail (total seul)'}
           </button>
         )}
         <div class="sheet-actions">

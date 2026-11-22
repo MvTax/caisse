@@ -4,8 +4,15 @@ import { addToCart, type Cart } from '../../src/domain/cart';
 import { createOrder } from '../../src/domain/order';
 import { priceItem, type Selection } from '../../src/domain/pricing';
 import { computeStats } from '../../src/domain/stats';
+import { formatCents } from '../../src/domain/money';
 import { renderPreview } from '../../src/printing/escpos';
-import { charsetTicket, dayRecapTicket, orderTicket, testTicket } from '../../src/printing/ticket';
+import {
+  charsetTicket,
+  dayRecapTicket,
+  invoiceTicket,
+  orderTicket,
+  testTicket,
+} from '../../src/printing/ticket';
 
 const cat = (id: string) => MENU.categories.find((c) => c.id === id)!;
 let n = 0;
@@ -133,5 +140,48 @@ describe('tickets de test', () => {
     expect(t).toContain('RÉCAPITULATIF');
     expect(t).toContain('Récapitulatif - non fiscal');
     expect(t).toMatch(/Espèces \(1\) +\d/);
+  });
+});
+
+describe('facture sans détail (note client)', () => {
+  const later = new Date('2026-11-22T15:00:00Z');
+
+  it.each([32, 42, 48])('aucune ligne ne dépasse %i colonnes', (columns) => {
+    const p = invoiceTicket(order, { columns, at: later });
+    for (const l of renderPreview(p.toPreview(), columns)) {
+      expect(l.length, l).toBeLessThanOrEqual(columns);
+    }
+  });
+
+  it('total seul : ni articles de la carte, ni paiement, ni bipper', () => {
+    const t = text(renderPreview(invoiceTicket(order, { columns: 48, at: later }).toPreview(), 48));
+    expect(t).toContain('NOTE');
+    expect(t).toContain('sans détail');
+    expect(t).toContain('#12');
+    expect(t).toContain('22/11/2026 14:32'); // date de la commande, heure de Paris
+    expect(t).toMatch(/Consommations +\S+ €/);
+    expect(t).toMatch(new RegExp(`TOTAL TTC +${formatCents(order.total).replace(/\s/g, '\\s')}`));
+    expect(t).toContain('non fiscal');
+    for (const hidden of [
+      'Gaufre',
+      'Passion',
+      'Oreo',
+      'Glace',
+      'Bouteille',
+      'ESPÈCES',
+      'CARTE',
+      'RENDU',
+      'Reçu',
+      'BIPPER',
+      'EMPORTER',
+    ]) {
+      expect(t, hidden).not.toContain(hidden);
+    }
+  });
+
+  it('pas d’ouverture du tiroir, coupe finale', () => {
+    const bytes = [...invoiceTicket(order, { columns: 48, at: later }).toBytes()];
+    expect(bytes.slice(-4)).toEqual([0x1d, 0x56, 0x42, 0x00]);
+    expect(bytes.some((b, i) => b === 0x1b && bytes[i + 1] === 0x70)).toBe(false);
   });
 });

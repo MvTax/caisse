@@ -126,3 +126,22 @@ test('Epson : récapitulatif de la journée depuis les statistiques', async ({ p
   expect(recap).toContain('1x Sandwich');
   expect(recap).toContain('non fiscal');
 });
+
+test('Epson : facture sans détail depuis la fiche commande (total seul)', async ({ page }) => {
+  const prints = await mockEpson(page, () => 'ok');
+  await page.goto('/');
+  await orderSandwich(page);
+  await expect(page.getByRole('status').filter({ hasText: 'Commande #1 imprimée' })).toBeVisible();
+  await page.getByRole('button', { name: /^Commandes/ }).click();
+  await page.getByTestId('order-row').first().click();
+  await page.getByRole('button', { name: /Facture sans détail/ }).click();
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Facture sans détail imprimée' }),
+  ).toBeVisible();
+  expect(prints).toHaveLength(2);
+  const note = commandBytes(prints[1]!).toString('latin1');
+  expect(note).toContain('NOTE');
+  expect(note).toContain('TOTAL TTC');
+  expect(note).not.toContain('Sandwich');
+  expect(note).not.toContain('CARTE');
+});

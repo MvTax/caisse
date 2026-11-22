@@ -106,6 +106,35 @@ export function orderTicket(menu: Menu, order: Order, opts: TicketOptions): EscP
   return p;
 }
 
+/**
+ * Note client « sans détail » : le total seul, sans les articles de la carte ni le mode de
+ * paiement (usage type note de frais). Pas de bipper, pas de tiroir. Justificatif non fiscal :
+ * la facture officielle relève du logiciel de caisse (CLAUDE.md §2.3).
+ */
+export function invoiceTicket(order: Order, opts: { columns: number; at: Date }): EscPos {
+  const created = new Date(order.createdAt);
+  const p = header(new EscPos({ columns: opts.columns }));
+  p.rule('=')
+    .bold(true)
+    .textLine('NOTE')
+    .bold(false)
+    .textLine('sans détail')
+    .rule('=')
+    .align('left')
+    .row('Commande', `#${order.number}`)
+    .row('Date', `${formatDate(created)} ${formatTime(created)}`)
+    .rule('-')
+    .row('Consommations', formatCents(order.total))
+    .rule('-')
+    .bold(true)
+    .size(1, 2)
+    .row('TOTAL TTC', formatCents(order.total))
+    .size(1, 1)
+    .bold(false)
+    .rule('=');
+  return footer(p, opts.at, 'Justificatif - non fiscal');
+}
+
 /** Ticket de test : vérifie la liaison, la largeur et les accents. */
 export function testTicket(opts: {
   columns: number;

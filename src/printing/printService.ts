@@ -24,7 +24,7 @@ import {
 } from './bridgeClient';
 import type { EscPos } from './escpos';
 import { eposPrint, eposStatus } from './eposClient';
-import { charsetTicket, orderTicket, testTicket } from './ticket';
+import { charsetTicket, invoiceTicket, orderTicket, testTicket } from './ticket';
 
 export const servingMode = detectServingMode(location);
 
@@ -252,4 +252,14 @@ export async function printTestTicket(kind: 'test' | 'charset'): Promise<Result<
 /** Envoi d'octets déjà construits (récap de journée…). */
 export async function printRaw(ticket: EscPos, label: string): Promise<Result<PrintResponse>> {
   return send(ticket, `raw-${Date.now()}`, label, 1);
+}
+
+/** Note client sans détail (total seul) pour une commande. N'entre pas dans le journal. */
+export async function printInvoice(orderId: string): Promise<Result<PrintResponse>> {
+  const order = data.value.orders.find((o) => o.id === orderId);
+  if (!order) {
+    return { ok: false, error: { kind: 'bad-response', message: 'Commande introuvable' } };
+  }
+  const ticket = invoiceTicket(order, { columns: data.value.settings.columns, at: new Date() });
+  return send(ticket, `invoice-${order.id}-${Date.now()}`, `Note commande #${order.number}`, 1);
 }

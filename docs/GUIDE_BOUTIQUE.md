@@ -18,6 +18,11 @@ L'iPhone imprime directement sur l'**Epson TM-m30II** en Wi-Fi.
 
 Fin de journée : 📊 Statistiques → « Imprimer le récapitulatif » (ticket de synthèse, non fiscal).
 
+Un client demande une facture sans détail (note de frais) : 📋 Commandes → touche la commande →
+« 🧾 Facture sans détail ». Le ticket ne montre que le n° de commande, la date et le total TTC
+(aucun produit, aucun mode de paiement). Ce n'est pas une facture officielle : si le client a
+besoin d'une vraie facture (avec SIRET, TVA…), elle se fait sur le logiciel de caisse.
+
 La suite de ce guide concerne la **passerelle** (réglage « Passerelle », imprimante CSI GIANT-100).
 
 ## Le matin (2 minutes)
