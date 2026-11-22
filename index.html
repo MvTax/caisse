@@ -17,6 +17,7 @@
     --danger: #a33b2b;
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body {
     margin: 0;
     background: var(--bg);
@@ -135,6 +136,12 @@
   .diag li .a .btn { padding: 4px 10px; font-size: 13px; }
   .diag li.err b { color: var(--danger); }
   .diag li.ok b { color: var(--accent); }
+  .online { margin: 12px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--accent-soft); font-size: 14px; }
+  .online[hidden] { display: none; }
+  .online p { margin: 0 0 6px; }
+  .online ol { margin: 0; padding-left: 20px; }
+  .online li { margin-bottom: 6px; }
+  .online pre { white-space: pre-wrap; word-break: break-all; background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 12px; margin: 6px 0; }
   .notice { margin: 10px 0 0; padding: 8px 10px; border-radius: 6px; background: #fbeae6; color: var(--danger); font-size: 14px; }
   .notice[hidden] { display: none; }
 
@@ -161,7 +168,7 @@
   <section>
     <div class="card" id="diagCard">
       <h2>Diagnostic</h2>
-      <div class="grid3">
+      <div class="grid3" id="ipRow">
         <div style="grid-column: span 2">
           <label for="ip">IP de l'imprimante (si elle est en réseau)</label>
           <input id="ip" type="text" placeholder="ex. 192.168.1.50" autocomplete="off" spellcheck="false">
@@ -175,6 +182,22 @@
         <button class="btn primary" id="diagBtn" type="button">🔧 Lancer le test</button>
         <button class="btn" id="scanBtn" type="button">🔍 Chercher les imprimantes réseau</button>
         <button class="btn" id="ipPrintBtn" type="button">🖨 Imprimer sur l'IP</button>
+      </div>
+      <div class="online" id="onlineBox" hidden>
+        <p><b>Version en ligne.</b> Depuis cette page (HTTPS), le navigateur ne peut pas joindre l'imprimante ticket :
+          le bouton Imprimer passe seulement par AirPrint.</p>
+        <p><b>Pour tester l'imprimante ticket depuis l'iPhone :</b></p>
+        <ol>
+          <li>Sur l'ordinateur de caisse : touche Windows, tapez <code>cmd</code>, clic droit sur « Invite de commandes »
+            → « Exécuter en tant qu'administrateur », collez cette commande puis Entrée :
+            <pre id="bridgeCmd"></pre>
+            <button class="btn" id="copyCmd" type="button">Copier la commande</button>
+          </li>
+          <li>Sur l'iPhone, en Wi-Fi sur le réseau de la boutique, ouvrez
+            <a id="bridgeLink" href="http://192.168.1.122:8080">http://192.168.1.122:8080</a> :
+            c'est ce testeur, et cette fois il imprime vraiment.</li>
+          <li>Pour revenir à l'app de caisse : Ctrl+C dans la fenêtre noire, puis relancez la commande habituelle de la passerelle.</li>
+        </ol>
       </div>
       <ol class="diag" id="diagOut"></ol>
     </div>
@@ -290,11 +313,11 @@ Tél. 01 23 45 67 89</textarea>
         <button class="btn primary big" id="printBtn" type="button">🖨 Imprimer</button>
       </div>
       <p class="notice" id="printMsg" hidden></p>
-      <p class="help">Ouvre la boîte d'impression du navigateur : choisissez votre imprimante (thermique, laser, PDF…).
+      <p class="help" id="printHelp">Ouvre la boîte d'impression du navigateur : choisissez votre imprimante (thermique, laser, PDF…).
         Pour une imprimante ticket, mettez les marges à « Aucune » et l'échelle à 100 %.</p>
     </div>
 
-    <div class="card">
+    <div class="card" id="escposCard">
       <details id="escposBox">
         <summary>Impression directe ESC/POS (imprimante thermique)</summary>
         <p class="help" style="margin-top:0">
@@ -311,7 +334,7 @@ Tél. 01 23 45 67 89</textarea>
               <option value="ascii">ASCII – sans accents</option>
             </select>
           </div>
-          <div class="field">
+          <div class="field" id="baudField">
             <label for="baud">Vitesse port série</label>
             <select id="baud">
               <option>9600</option><option>19200</option><option>38400</option>
@@ -641,7 +664,7 @@ Tél. 01 23 45 67 89</textarea>
     try { window.print(); } catch (e) { /* bloqué */ }
     // Si la boîte d'impression ne s'est pas ouverte, on le dit au lieu de ne rien faire.
     setTimeout(() => {
-      if (printState.opened) return;
+      if (printState.opened || (IS_IOS && !inFrame())) return;
       const m = $('#printMsg');
       m.hidden = false;
       m.textContent = inFrame()
@@ -809,10 +832,57 @@ Tél. 01 23 45 67 89</textarea>
 
 
   // ---------- Serveur local + diagnostic ----------
-  const API = location.protocol.startsWith('http') ? '' : 'http://127.0.0.1:8642';
-  const SERVER_HELP = 'Lancez <code>lancer.bat</code> (Windows) ou <code>lancer.sh</code> (Mac/Linux), '
-    + 'ou <code>python3 serveur.py</code>, puis utilisez la page qui s\'ouvre sur <code>http://127.0.0.1:8642</code>. '
-    + 'Python 3 est nécessaire (python.org).';
+  // Trois façons d'ouvrir ce testeur :
+  //  - en ligne (https, ex. github.io) : pas d'accès réseau local, impression par la boîte du navigateur ;
+  //  - servi par serveur.py / testeur-impression.py (API /api/ping, /api/check…) ;
+  //  - servi par la passerelle de caisse ma-bridge.ps1 (API /api/health, /api/print).
+  const ONLINE = location.protocol === 'https:';
+  const API = location.protocol === 'file:' ? 'http://127.0.0.1:8642' : '';
+  const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const BRIDGE_CMD = 'powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=\'Tls12\'; '
+    + '& ([scriptblock]::Create((New-Object Net.WebClient).DownloadString(\'https://mvtax.github.io/caisse/bridge.ps1\'))) '
+    + '-AppUrl \'https://mvtax.github.io/caisse/testeur/index.html\'"';
+  const SERVER_HELP = IS_IOS
+    ? 'Sur iPhone : lancez la passerelle de caisse avec le testeur (commande ci-dessous), puis ouvrez <code>http://192.168.1.122:8080</code>.'
+    : 'Double-cliquez sur <code>testeur-impression.py</code> (Python 3 nécessaire, python.org), '
+      + 'ou lancez la passerelle de caisse avec le testeur, puis utilisez la page qui s\'ouvre.';
+
+  let backend = null; // { kind: 'local' | 'bridge', info }
+  async function detectBackend() {
+    backend = null;
+    if (ONLINE) return null;
+    try {
+      const r = await api('/api/ping', null, 3000);
+      if (r.ok && r.python) return (backend = { kind: 'local', info: r });
+    } catch (e) { /* pas serveur.py */ }
+    if (location.protocol === 'http:') {
+      try {
+        const r = await api('/api/health', null, 15000);
+        if (r.ok && r.printer) return (backend = { kind: 'bridge', info: r });
+      } catch (e) { /* pas la passerelle */ }
+    }
+    return null;
+  }
+
+  async function backendCheck(ip, port) {
+    if (backend.kind === 'local') return api('/api/check', { ip, port }, 30000);
+    const h = await api(`/api/health?ip=${encodeURIComponent(ip)}&port=${port}`, null, 20000);
+    const p = h.printer;
+    return {
+      ip: p.ip, port: p.port, bridge: true, status: null,
+      ping: { ok: null, detail: 'non testé par la passerelle' },
+      ports: { [String(p.port)]: p.reachable ? { open: true, ms: p.latencyMs } : { open: false, err: p.error || 'injoignable' } },
+    };
+  }
+
+  async function backendPrint(ip, port, bytes, label) {
+    if (backend.kind === 'local') return api('/api/print', { ip, port, data: toB64(bytes) });
+    const r = await api('/api/print', {
+      data: toB64(bytes), copies: 1, label: 'Testeur : ' + label, printer: { ip, port },
+      jobId: 'testeur-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+    }, 30000);
+    return { ok: true, sent: r.bytes, ip, port };
+  }
 
   async function api(path, body, timeout = 20000) {
     const ctrl = new AbortController();
@@ -889,7 +959,9 @@ Tél. 01 23 45 67 89</textarea>
     if (btn) btn.disabled = true;
     const done = pending(`${label} → ${ip}:${port}…`);
     try {
-      const r = await api('/api/print', { ip, port, data: toB64(bytes) });
+      if (!backend) await detectBackend();
+      if (!backend) throw new Error(ONLINE ? 'impossible depuis la version en ligne (voir l\'encadré ci-dessus)' : 'serveur local injoignable');
+      const r = await backendPrint(ip, port, bytes, label);
       done('ok', `${label} envoyé à ${r.ip}:${r.port}`, `${r.sent} octets transmis. Si rien ne sort : vérifiez le papier, le capot, ou essayez un autre jeu de caractères / le port 9100.`);
     } catch (e) {
       done('err', `Échec de l'envoi à ${ip}:${port}`, esc(e.message) + (/injoignable/.test(e.message) ? '<br>' + SERVER_HELP : ''));
@@ -919,14 +991,25 @@ Tél. 01 23 45 67 89</textarea>
         report('info', 'Boîte d\'impression pas encore testée', '', [['Tester maintenant', () => printBrowser()]]);
       }
 
-      // 3. Serveur local
-      let server = null;
-      let done = pending('Serveur local…');
-      try {
-        server = await api('/api/ping', null, 4000);
+      // 3. Accès au réseau local (serveur.py ou passerelle de caisse)
+      if (ONLINE) {
+        report('info', 'Version en ligne : pas d\'accès à l\'imprimante réseau',
+          'Une page HTTPS ne peut pas joindre une imprimante du réseau local. Suivez l\'encadré ci-dessus pour tester depuis la passerelle de caisse.'
+          + (IS_IOS ? ' Ici, le bouton Imprimer passe par AirPrint : seule une imprimante compatible AirPrint peut imprimer.' : ''));
+        return;
+      }
+      let done = pending('Serveur local ou passerelle…');
+      await detectBackend();
+      const server = backend && backend.kind === 'local' ? backend.info : null;
+      if (server) {
         done('ok', 'Serveur local actif', `${esc(server.os)} · Python ${esc(server.python)} · IP de ce poste : ${esc(server.local_ips.join(', ') || '?')}`);
-      } catch (e) {
-        done('err', 'Serveur local non démarré', 'Sans lui, impossible de tester une IP ou d\'imprimer en réseau. ' + SERVER_HELP);
+      } else if (backend) {
+        const b = backend.info;
+        done('ok', `Passerelle de caisse active (version ${b.version})`, `Imprimante configurée : ${esc(b.printer.ip)}:${esc(b.printer.port)}`
+          + (b.printer.reachable ? ' (joignable)' : ' (injoignable)'));
+        if (!$('#ip').value.trim()) $('#ip').value = b.printer.ip;
+      } else {
+        done('err', 'Ni serveur local ni passerelle', 'Sans eux, impossible de tester une IP ou d\'imprimer en réseau. ' + SERVER_HELP);
       }
 
       // 4. Imprimantes installées
@@ -968,29 +1051,31 @@ Tél. 01 23 45 67 89</textarea>
           + 'Astuce : sur la plupart des imprimantes ticket, maintenir le bouton FEED à l\'allumage imprime une page avec l\'IP.');
       } else if (!/^[a-z0-9.\-]+$/i.test(ip)) {
         report('err', 'IP invalide', `« ${esc(ip)} » : une IP ressemble à <code>192.168.1.50</code>.`);
-      } else if (server) {
+      } else if (backend) {
         done = pending(`Test de ${ip}…`);
         try {
-          const r = await api('/api/check', { ip, port }, 30000);
+          const r = await backendCheck(ip, port);
           done('info', `Imprimante ${r.ip}`);
           const p = r.ports[String(r.port)];
-          if (r.ping.ok === true) report('ok', 'Répond au ping', `${r.ping.ms} ms`);
+          if (r.bridge) { /* la passerelle ne fait pas de ping */ }
+          else if (r.ping.ok === true) report('ok', 'Répond au ping', `${r.ping.ms} ms`);
           else if (r.ping.ok === null) report('info', 'Ping non disponible', esc(r.ping.detail));
           else report(p.open ? 'info' : 'err', p.open ? 'Ne répond pas au ping (normal pour certaines imprimantes)' : 'Ne répond pas au ping',
             p.open ? '' : 'Vérifiez qu\'elle est allumée, branchée au réseau, et que l\'IP est la bonne.');
 
-          const mine = (server.local_ips || []).map((x) => x.split('.').slice(0, 3).join('.'));
+          const mine = ((server && server.local_ips) || []).map((x) => x.split('.').slice(0, 3).join('.'));
           if (mine.length && /^\d+\.\d+\.\d+\.\d+$/.test(r.ip) && !r.ip.startsWith('127.') && !mine.includes(r.ip.split('.').slice(0, 3).join('.'))) {
             report('warn', 'Pas sur le même réseau que ce poste', `Ce poste : ${esc(server.local_ips.join(', '))} · imprimante : ${esc(r.ip)}. `
               + 'Si la connexion échoue, changez l\'IP de l\'imprimante (ou du poste) pour qu\'elles commencent pareil.');
           }
 
-          if (p.open) report('ok', `Port ${r.port} ouvert`, `Connexion en ${p.ms} ms : l'imprimante accepte les impressions directes.`);
+          if (p.open && r.bridge) report('ok', `Imprimante joignable par la passerelle`, `${r.ip}:${r.port}, réponse en ${p.ms} ms.`);
+          else if (p.open) report('ok', `Port ${r.port} ouvert`, `Connexion en ${p.ms} ms : l'imprimante accepte les impressions directes.`);
           else report('err', `Port ${r.port} inaccessible`, esc(p.err) + '. ' + (r.port === 9100 ? 'L\'impression brute (RAW / JetDirect) est peut-être désactivée, ou ce n\'est pas une imprimante.' : 'Essayez le port 9100.'));
 
           const others = Object.entries(r.ports).filter(([k]) => +k !== r.port)
             .map(([k, v]) => `${k} ${({ 9100: '(RAW)', 515: '(LPD)', 631: '(IPP)', 80: '(web)' })[k] || ''} : ${v.open ? 'ouvert' : 'fermé'}`);
-          report('info', 'Autres ports', esc(others.join(' · '))
+          if (others.length) report('info', 'Autres ports', esc(others.join(' · '))
             + (r.ports['80'] && r.ports['80'].open ? ` — page de configuration : <a href="http://${esc(r.ip)}" target="_blank" rel="noopener">http://${esc(r.ip)}</a>` : ''));
 
           if (r.status) {
@@ -1009,7 +1094,7 @@ Tél. 01 23 45 67 89</textarea>
           done('err', `Test de ${ip} impossible`, esc(e.message));
         }
       } else {
-        report('warn', `IP ${ip} non testée`, 'Démarrez d\'abord le serveur local (voir plus haut).');
+        report('warn', `IP ${ip} non testée`, 'Démarrez d\'abord le serveur local ou la passerelle (voir plus haut).');
       }
     } finally {
       $('#diagBtn').disabled = false;
@@ -1021,6 +1106,10 @@ Tél. 01 23 45 67 89</textarea>
     $('#diagOut').replaceChildren();
     const done = pending(`Recherche des imprimantes réseau (port ${getPort()})… environ 10 secondes`);
     try {
+      if (!backend) await detectBackend();
+      if (!backend || backend.kind !== 'local') {
+        throw new Error(backend ? 'la recherche n\'est possible qu\'avec testeur-impression.py (pas via la passerelle)' : 'serveur local injoignable');
+      }
       const r = await api('/api/scan', { port: getPort() }, 90000);
       if (!r.found.length) {
         done('warn', 'Aucune imprimante trouvée', `${r.scanned} adresses testées sur ${esc(r.networks.join(', ') || 'aucun réseau')}. `
@@ -1089,6 +1178,28 @@ Tél. 01 23 45 67 89</textarea>
   $('#scanBtn').addEventListener('click', runScan);
   $('#ipPrintBtn').addEventListener('click', (e) => { $('#diagOut').replaceChildren(); sendToIp(escposBytes(), 'Impression', e.currentTarget); });
   $('#ip').addEventListener('keydown', (e) => { if (e.key === 'Enter') runDiag(); });
+  // Adapter l'interface au contexte
+  $('#bridgeCmd').textContent = BRIDGE_CMD;
+  $('#copyCmd').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(BRIDGE_CMD); $('#copyCmd').textContent = 'Copiée ✓'; }
+    catch (e) { const r = document.createRange(); r.selectNodeContents($('#bridgeCmd')); getSelection().removeAllRanges(); getSelection().addRange(r); }
+  });
+  if (!navigator.usb) $('#connectUsb').hidden = true;
+  if (!navigator.serial) { $('#connectSerial').hidden = true; $('#baudField').hidden = true; }
+  if (!navigator.usb && !navigator.serial) { $('#rawPrint').hidden = true; $('#drawer').hidden = true; $('#status').hidden = true; }
+  if (ONLINE) {
+    $('#onlineBox').hidden = false;
+    $('#ipRow').hidden = true; $('#scanBtn').hidden = true; $('#ipPrintBtn').hidden = true;
+    if (!navigator.usb && !navigator.serial) $('#escposCard').hidden = true;
+    if (IS_IOS) $('#printHelp').textContent = 'Sur iPhone, Imprimer ouvre le partage AirPrint : seule une imprimante compatible AirPrint peut imprimer. Pour l\'imprimante ticket, voir Diagnostic.';
+  } else {
+    detectBackend().then((b) => {
+      if (b && b.kind === 'bridge') {
+        $('#scanBtn').hidden = true;
+        if (!$('#ip').value.trim()) $('#ip').value = b.info.printer.ip;
+      }
+    });
+  }
   try {
     $('#ip').value = localStorage.getItem('testeur.ip') || '';
     $('#ipPort').value = localStorage.getItem('testeur.port') || '9100';
