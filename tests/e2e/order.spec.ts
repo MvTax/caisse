@@ -78,12 +78,12 @@ test('commande complète multi-articles en espèces → liste → détail → te
   await expect(page.getByTestId('change')).toContainText('28,50 €');
   await expect(page.getByTestId('change')).toContainText('1 × 20 €');
   await expect(validate).toBeDisabled(); // pas encore de bipper
-  await page.getByLabel('Numéro de bipper').fill('7');
+  await page.getByRole('radio', { name: 'Bipper 13' }).click();
   await expect(validate).toBeEnabled();
   await validate.click();
 
   await expect(
-    page.getByRole('status').filter({ hasText: 'Commande #1 · Bipper 7' }),
+    page.getByRole('status').filter({ hasText: 'Commande #1 · Bipper 13' }),
   ).toBeVisible();
 
   // Liste des commandes
@@ -91,7 +91,7 @@ test('commande complète multi-articles en espèces → liste → détail → te
   const row = page.getByTestId('order-row').first();
   await expect(row).toContainText('Tahiti M');
   await expect(row).toContainText('21,50 €');
-  await expect(row.getByLabel('Bipper 7')).toBeVisible();
+  await expect(row.getByLabel('Bipper 13')).toBeVisible();
 
   // Détail puis terminer
   await row.locator('.order-main').click();
@@ -138,22 +138,34 @@ test('retour arrière : changer de format sans tout recommencer', async ({ page 
   await expect(page.getByTestId('cart-total')).toHaveText('3,95 €');
 });
 
-test('bipper déjà utilisé : avertissement non bloquant ; bipper suivant proposé', async ({
-  page,
-}) => {
+test('grille des bippers : bipper remis grisé, avertissement non bloquant', async ({ page }) => {
   await page.goto('/');
   for (const round of [1, 2]) {
     await page.getByRole('button', { name: /^Sandwich/ }).click();
     await page.getByRole('button', { name: /^Valider · 1 article/ }).click();
     await page.getByRole('radio', { name: /Carte/ }).click();
-    await page.getByLabel('Numéro de bipper').fill('3');
-    if (round === 1) await expect(page.locator('.warning')).toHaveCount(0);
-    else await expect(page.locator('.warning')).toContainText('déjà sur la commande #1');
+    const grid = page.getByRole('radiogroup', { name: 'Bipper' });
+    await expect(grid.getByRole('radio')).toHaveCount(11);
+    if (round === 1) {
+      await grid.getByRole('radio', { name: 'Bipper 24' }).click();
+      await expect(page.locator('.warning')).toHaveCount(0);
+    } else {
+      const busy = grid.getByRole('radio', { name: 'Bipper 24 (déjà remis)' });
+      await expect(busy).toHaveClass(/busy/);
+      await busy.click();
+      await expect(page.locator('.warning')).toContainText('déjà sur la commande #1');
+    }
     await page.getByRole('button', { name: /Valider la commande/ }).click();
     await expect(page.getByRole('status').filter({ hasText: `Commande #${round}` })).toBeVisible();
   }
+});
+
+test('autre numéro de bipper saisi à la main', async ({ page }) => {
+  await page.goto('/');
   await page.getByRole('button', { name: /^Sandwich/ }).click();
   await page.getByRole('button', { name: /^Valider · 1 article/ }).click();
-  await page.getByRole('button', { name: 'Suivant : 4' }).click();
-  await expect(page.getByLabel('Numéro de bipper')).toHaveValue('4');
+  await page.getByRole('radio', { name: /Carte/ }).click();
+  await page.getByLabel('Autre numéro').fill('42');
+  await page.getByRole('button', { name: /Valider la commande/ }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Bipper 42' })).toBeVisible();
 });

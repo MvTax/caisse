@@ -12,8 +12,8 @@ export interface Settings {
   drawerEnabled: boolean;
   /** Une commande en cours devient « en retard » après N minutes. */
   overdueMinutes: number;
-  /** Nombre de bippers (0 = pas de maximum). */
-  bipperMax: number;
+  /** Numéros des bippers de la boutique (vide = saisie libre). */
+  bippers: string[];
   /** Jeton partagé optionnel avec la passerelle. */
   token: string;
 }
@@ -28,6 +28,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoPrint: true,
   drawerEnabled: false,
   overdueMinutes: 10,
-  bipperMax: 0,
+  // Les 11 bippers de la boutique (numéros non consécutifs, fournis par l'utilisateur).
+  bippers: ['6', '13', '14', '18', '19', '21', '22', '24', '27', '28', '29'],
   token: '',
 };

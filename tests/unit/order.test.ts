@@ -3,6 +3,8 @@ import { MENU } from '../../src/data/menu';
 import { addToCart, type Cart } from '../../src/domain/cart';
 import {
   bipperInUse,
+  busyBippers,
+  parseBipperList,
   createOrder,
   nextBipper,
   nextOrderNumber,
@@ -91,10 +93,27 @@ describe('createOrder', () => {
 });
 
 describe('bippers', () => {
+  it('liste saisie librement → numéros uniques triés', () => {
+    expect(parseBipperList('13/19/24/14/29/27/6/18/22/28/21')).toEqual([
+      '6',
+      '13',
+      '14',
+      '18',
+      '19',
+      '21',
+      '22',
+      '24',
+      '27',
+      '28',
+      '29',
+    ]);
+    expect(parseBipperList(' 06, 6 ; 12 0 ')).toEqual(['6', '12']);
+    expect(parseBipperList('')).toEqual([]);
+  });
+
   it('suivant', () => {
     expect(nextBipper(undefined)).toBe('1');
     expect(nextBipper('7')).toBe('8');
-    expect(nextBipper('20', 20)).toBe('1');
     expect(nextBipper('abc')).toBe('1');
   });
   it('déjà utilisé par une commande en cours', () => {
@@ -110,5 +129,7 @@ describe('bippers', () => {
     expect(bipperInUse([order], '7')?.id).toBe('a');
     expect(bipperInUse([setDone(order, true, now)], '7')).toBeUndefined();
     expect(bipperInUse([order], '8')).toBeUndefined();
+    expect([...busyBippers([order])]).toEqual(['7']);
+    expect(busyBippers([setDone(order, true, now)]).size).toBe(0);
   });
 });

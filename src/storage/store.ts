@@ -30,7 +30,7 @@ export interface StorageLike {
 export function emptyData(): AppData {
   return {
     schemaVersion: SCHEMA_VERSION,
-    settings: { ...DEFAULT_SETTINGS },
+    settings: { ...DEFAULT_SETTINGS, bippers: [...DEFAULT_SETTINGS.bippers] },
     orders: [],
     menuOverrides: {},
     counters: { day: '', lastNumber: 0 },
@@ -46,12 +46,22 @@ function upgrade(raw: Partial<AppData> & { schemaVersion?: number }): AppData {
     ...base,
     ...raw,
     schemaVersion: SCHEMA_VERSION,
-    settings: { ...base.settings, ...(raw.settings ?? {}) },
+    settings: cleanSettings({ ...base.settings, ...(raw.settings ?? {}) }),
     orders: Array.isArray(raw.orders) ? raw.orders : [],
     cart: Array.isArray(raw.cart) ? raw.cart : [],
     counters: raw.counters ?? base.counters,
     menuOverrides: raw.menuOverrides ?? {},
   };
+}
+
+/** Retire les anciens réglages et corrige les types invalides. */
+function cleanSettings(s: Settings & { bipperMax?: unknown }): Settings {
+  const { bipperMax: _old, ...rest } = s;
+  void _old;
+  if (!Array.isArray(rest.bippers) || !rest.bippers.every((b) => typeof b === 'string')) {
+    rest.bippers = [...DEFAULT_SETTINGS.bippers];
+  }
+  return rest;
 }
 
 export interface LoadResult {

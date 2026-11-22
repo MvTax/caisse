@@ -130,6 +130,14 @@ describe('store', () => {
     expect(d.cart).toEqual([]);
   });
 
+  it('anciens réglages nettoyés, liste de bippers par défaut', () => {
+    const s = new MemStorage();
+    s.setItem(STORAGE_KEY, JSON.stringify({ settings: { bipperMax: 20, bippers: 'oups' } }));
+    const st = loadData(s).data.settings;
+    expect('bipperMax' in st).toBe(false);
+    expect(st.bippers).toHaveLength(11);
+  });
+
   it('JSON corrompu → pas de plantage', () => {
     const s = new MemStorage();
     s.setItem(STORAGE_KEY, '{oups');

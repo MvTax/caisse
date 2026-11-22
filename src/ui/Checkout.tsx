@@ -4,7 +4,13 @@ import { pop, resetTo } from '../app/nav';
 import { cartTotal, lineLabel, lineTotal, sortForKitchen } from '../domain/cart';
 import { breakdown, computeChange, QUICK_CASH_AMOUNTS } from '../domain/change';
 import { formatCents, formatDenomination, parseCentsInput, centsToInput } from '../domain/money';
-import { bipperInUse, nextBipper, OrderError, type PaymentMethod } from '../domain/order';
+import {
+  bipperInUse,
+  busyBippers,
+  nextBipper,
+  OrderError,
+  type PaymentMethod,
+} from '../domain/order';
 import { TopBar } from './TopBar';
 
 export function Checkout() {
@@ -18,7 +24,7 @@ export function Checkout() {
 
   useEffect(() => {
     if (method === 'cash') cashRef.current?.focus();
-    else if (method === 'card') bipperRef.current?.focus();
+    else if (method === 'card' && !data.value.settings.bippers.length) bipperRef.current?.focus();
   }, [method]);
 
   if (!d.cart.length) {
@@ -35,7 +41,9 @@ export function Checkout() {
   const given = parseCentsInput(cashText);
   const cashInvalid = cashText.trim() !== '' && given === null;
   const change = method === 'cash' ? computeChange(total, given) : { status: 'none' as const };
-  const suggestion = nextBipper(d.lastBipper, d.settings.bipperMax || undefined);
+  const bipperList = d.settings.bippers;
+  const busy = busyBippers(d.orders);
+  const suggestion = nextBipper(d.lastBipper);
   const inUse = bipperInUse(d.orders, bipper);
 
   const missing: string[] = [];
@@ -158,10 +166,33 @@ export function Checkout() {
           </section>
         )}
 
-        <h2 class="section-title">
-          <label for="bipper-input">Numéro de bipper</label>
+        <h2 class="section-title" id="bipper-title">
+          Bipper
         </h2>
+        {bipperList.length > 0 && (
+          <div class="bipper-grid" role="radiogroup" aria-labelledby="bipper-title">
+            {bipperList.map((b) => {
+              const isBusy = busy.has(b);
+              return (
+                <button
+                  key={b}
+                  type="button"
+                  role="radio"
+                  aria-checked={bipper === b}
+                  aria-label={`Bipper ${b}${isBusy ? ' (déjà remis)' : ''}`}
+                  class={`bipper-choice${bipper === b ? ' selected' : ''}${isBusy ? ' busy' : ''}`}
+                  onClick={() => setBipper(b)}
+                >
+                  {b}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div class="bipper-row">
+          <label class="field-label" for="bipper-input">
+            {bipperList.length ? 'Autre numéro' : 'Numéro de bipper'}
+          </label>
           <input
             id="bipper-input"
             ref={bipperRef}
@@ -175,7 +206,7 @@ export function Checkout() {
             value={bipper}
             onInput={(e) => setBipper(e.currentTarget.value.replace(/\D/g, ''))}
           />
-          {suggestion !== bipper && (
+          {bipperList.length === 0 && suggestion !== bipper && (
             <button type="button" class="btn btn-secondary" onClick={() => setBipper(suggestion)}>
               {d.lastBipper ? `Suivant : ${suggestion}` : `Bipper ${suggestion}`}
             </button>

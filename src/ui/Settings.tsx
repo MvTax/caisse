@@ -9,6 +9,7 @@ import {
 import { pop } from '../app/nav';
 import { detectServingMode, DEFAULT_BRIDGE_URL } from '../app/env';
 import type { Settings as S } from '../storage/settings';
+import { parseBipperList } from '../domain/order';
 import { plural } from './helpers';
 import { TopBar } from './TopBar';
 
@@ -21,7 +22,7 @@ function NumberRow(props: {
   value: number;
   min: number;
   max: number;
-  k: 'bipperMax' | 'overdueMinutes';
+  k: 'overdueMinutes';
   hint?: string;
 }) {
   return (
@@ -68,14 +69,25 @@ export function Settings() {
 
         <h2 class="ios-group-title">Commandes</h2>
         <div class="ios-group">
-          <NumberRow
-            label="Nombre de bippers"
-            hint="0 = pas de maximum. Sert à proposer le bipper suivant."
-            value={st.bipperMax}
-            min={0}
-            max={999}
-            k="bipperMax"
-          />
+          <label class="ios-row ios-row-stack">
+            <span class="ios-row-text">
+              Numéros des bippers ({st.bippers.length})
+              <small>Séparés par des virgules ou des espaces. Vide = saisie libre du numéro.</small>
+            </span>
+            <input
+              type="text"
+              inputMode="numeric"
+              class="ios-text"
+              aria-label="Numéros des bippers"
+              defaultValue={st.bippers.join(', ')}
+              onChange={(e) => {
+                const list = parseBipperList(e.currentTarget.value);
+                setSetting('bippers', list);
+                e.currentTarget.value = list.join(', ');
+                showToast(plural(list.length, 'bipper enregistré', 'bippers enregistrés'), 'info');
+              }}
+            />
+          </label>
           <NumberRow
             label="Alerte « en retard » après (min)"
             value={st.overdueMinutes}

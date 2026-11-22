@@ -985,13 +985,40 @@ p {
 .coins li.bill {
   border: 1.5px solid #7fc79a;
 }
+.bipper-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.bipper-choice {
+  min-height: 56px;
+  border-radius: 14px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  font-size: 24px;
+  font-weight: 900;
+  border: 3px solid transparent;
+}
+.bipper-choice.selected {
+  background: var(--jaune);
+  border-color: #e0a800;
+}
+.bipper-choice.busy:not(.selected) {
+  background: #eee8e1;
+  color: #a39aa6;
+  box-shadow: none;
+  text-decoration: line-through;
+}
 .bipper-row {
   display: flex;
   gap: 10px;
-  align-items: stretch;
+  align-items: center;
+}
+.bipper-row .field-label {
+  white-space: nowrap;
 }
 .bipper-input {
-  width: 120px;
+  width: 110px;
   border: 2px solid var(--ligne);
   border-radius: 14px;
   font-size: 34px;
@@ -1433,6 +1460,17 @@ p {
   background: #f2f2f7;
   border-radius: 8px;
   padding: 6px 8px;
+}
+.ios-row-stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+.ios-text {
+  border: 0;
+  font-size: 17px;
+  background: #f2f2f7;
+  border-radius: 8px;
+  padding: 8px 10px;
 }
 .ios-button {
   justify-content: center;

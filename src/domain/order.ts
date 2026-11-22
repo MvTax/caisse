@@ -104,12 +104,25 @@ export function bipperInUse(orders: Order[], bipper: string): Order | undefined 
   return b ? orders.find((o) => o.status === 'pending' && o.bipper === b) : undefined;
 }
 
-/** Bipper suivant : dernier + 1 (repart à 1 après le maximum si défini). */
-export function nextBipper(last: string | undefined, max?: number): string {
+/** Bipper suivant : dernier + 1 (utilisé seulement si aucune liste de bippers n'est réglée). */
+export function nextBipper(last: string | undefined): string {
   const n = Number(last);
   if (!last || !Number.isInteger(n) || n < 1) return '1';
-  if (max && n >= max) return '1';
   return String(n + 1);
+}
+
+/**
+ * Liste de bippers saisie librement (« 13/19, 24 14 ») → numéros uniques triés : ['13', '14', …].
+ * Les zéros en tête sont retirés (« 06 » = « 6 »).
+ */
+export function parseBipperList(text: string): string[] {
+  const nums = (text.match(/\d+/g) ?? []).map((n) => String(Number(n))).filter((n) => n !== '0');
+  return [...new Set(nums)].sort((a, b) => Number(a) - Number(b));
+}
+
+/** Bippers actuellement remis à un client (commandes non terminées). */
+export function busyBippers(orders: Order[]): Set<string> {
+  return new Set(orders.filter((o) => o.status === 'pending').map((o) => o.bipper));
 }
 
 export function itemCount(order: Pick<Order, 'lines'>): number {
