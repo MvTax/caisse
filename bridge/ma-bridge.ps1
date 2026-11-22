@@ -367,13 +367,14 @@ $FakePrinterScript = {
 $TestClientScript = {
   param($HttpPort, $Sync)
   $base = 'http://localhost:' + $HttpPort
-  function Req([string]$Method, [string]$Path, [string]$Body, [hashtable]$Headers) {
+  # Attention : un parametre [string] transforme $null en '' ; d'ou $Body non type.
+  function Req([string]$Method, [string]$Path, $Body, [hashtable]$Headers) {
     $r = [Net.HttpWebRequest]::Create($base + $Path)
     $r.Method = $Method
     $r.Timeout = 15000
     if ($Headers) { foreach ($k in $Headers.Keys) { $r.Headers.Add($k, $Headers[$k]) } }
-    if ($null -ne $Body) {
-      $b = [Text.Encoding]::UTF8.GetBytes($Body)
+    if ($Body) {
+      $b = [Text.Encoding]::UTF8.GetBytes([string]$Body)
       $r.ContentType = 'text/plain;charset=UTF-8'
       $r.ContentLength = $b.Length
       $st = $r.GetRequestStream(); $st.Write($b, 0, $b.Length); $st.Close()
