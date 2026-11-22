@@ -169,7 +169,7 @@
 
 <header>
   <h1>Testeur d'impression</h1>
-  <p>Écrivez du texte ou simulez un ticket de caisse, puis imprimez. <span class="ver">Version 2026-11-22.6</span></p>
+  <p>Écrivez du texte ou simulez un ticket de caisse, puis imprimez. <span class="ver">Version 2026-11-22.7</span></p>
   <p class="notice" id="bootError" hidden></p>
 </header>
 
@@ -308,6 +308,9 @@
           <code>&gt; texte</code> à droite, <code>**texte**</code> gras,
           <code>gauche :: droite</code> deux colonnes.
         </p>
+        <div class="actions" style="margin-top:8px">
+          <button class="btn" id="prankBtn" type="button">😈 Ticket hacker</button>
+        </div>
       </div>
 
       <!-- Ticket -->
@@ -1359,7 +1362,7 @@ Tél. 01 23 45 67 89</textarea>
   }
 
   // ---------- Test complet Epson + rapport copiable ----------
-  const TESTEUR_VERSION = '2026-11-22.6';
+  const TESTEUR_VERSION = '2026-11-22.7';
 
   function withTimeout(ms) {
     const ctrl = new AbortController();
@@ -1540,6 +1543,24 @@ Tél. 01 23 45 67 89</textarea>
 
   document.querySelectorAll('input, select, textarea').forEach((el) => {
     if (!el.closest('#items')) el.addEventListener('input', update);
+  });
+
+  // Modèle « ticket hacker » (blague). Le numéro n'est pas dans le code : demandé une fois,
+  // gardé seulement sur l'appareil.
+  const PRANK = "***\n# !! ALERTE !!\n# INTRUSION\n## ACCES ROOT OBTENU\n***\n^ >>> TERMINAL DE CAISSE COMPROMIS <<<\n===\nConnexion reseau 192.168.1.x :: [OK]\nContournement pare-feu :: [OK]\nPrise de controle imprimante :: [OK]\nListe des commandes :: [EFFACEE]\nAcces aux caisses :: [VERROUILLE]\nCameras de surveillance :: [COUPEES]\n===\nroot@caisse:~# ./takeover.sh\n[##############################] 100%\nroot@caisse:~# rm -rf /commandes/*\n[##############################] 100%\nroot@caisse:~# lock --caisses=ALL\n[######################........]  72%\n---\n***\n## MESSAGE DU HACKER\n***\nC'est moi le hacker de la caisse ce matin, j'espère que supprimer toute la liste n'était pas compliqué ;)\n\nJ'ai pris le contrôle de cette imprimante.\n---\n## APPELEZ-MOI\n# {TEL}\n^ pour comprendre ce que je cherche.\n---\n^ **SINON VOS CAISSES, JE LES FERME.**\n===\nCompte a rebours :: 00:59:59\nStatut :: EN ATTENTE\nSignature :: 0xDEADBEEF\n===\n^ 01001000 01000001 01000011 01001011\n^ ce ticket s'autodetruira...\n***";
+  $('#prankBtn').addEventListener('click', () => {
+    let tel = '';
+    try { tel = localStorage.getItem('testeur.tel') || ''; } catch (e) {}
+    if (!tel) {
+      tel = (window.prompt('Votre numéro de téléphone (il reste seulement sur cet appareil) :') || '').trim();
+      try { if (tel) localStorage.setItem('testeur.tel', tel); } catch (e) {}
+    }
+    const digits = tel.replace(/\D/g, '');
+    const shown = digits.length === 10 ? digits.replace(/(\d\d)(?=\d)/g, '$1 ') : (tel || '06 .. .. .. ..');
+    $('#freeText').value = PRANK.replace('{TEL}', shown);
+    $('#ftAlign').value = 'left'; $('#ftBold').checked = false; $('#ftBig').checked = false;
+    update();
+    $('#preview').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
   $('#printBtn').addEventListener('click', printBrowser);
