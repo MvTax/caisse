@@ -20,3 +20,8 @@ PW_CHROMIUM=1 npm run e2e   # idem avec Chromium si WebKit n'est pas installé
 ```
 
 Cahier des charges complet : [`CLAUDE.md`](CLAUDE.md).
+
+## Mise en ligne (GitHub Pages)
+
+Chaque envoi sur la branche par défaut du repo lance les tests puis publie l'app sur
+https://mvtax.github.io/caisse/ (réglage du repo : Settings → Pages → Source = **GitHub Actions**).
