@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Testeur d'impression</title>
+<style id="page-style"></style>
+<style>
+  :root {
+    --bg: #f2f0eb;
+    --panel: #ffffff;
+    --ink: #1c1c1e;
+    --muted: #6b6a66;
+    --line: #dcd8cf;
+    --accent: #1f6f5c;
+    --accent-soft: #e3efe9;
+    --danger: #a33b2b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header { padding: 20px 24px 8px; }
+  header h1 { margin: 0; font-size: 22px; }
+  header p { margin: 2px 0 0; color: var(--muted); }
+  main {
+    display: grid;
+    grid-template-columns: minmax(320px, 520px) 1fr;
+    gap: 20px;
+    padding: 12px 24px 32px;
+    align-items: start;
+  }
+  @media (max-width: 860px) {
+    main { grid-template-columns: 1fr; padding: 12px 16px 32px; }
+    header { padding: 16px 16px 4px; }
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .card h2 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  input, select, textarea, button { font: inherit; color: inherit; }
+  input[type=text], input[type=number], select, textarea {
+    width: 100%;
+    padding: 7px 9px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #fff;
+  }
+  textarea { resize: vertical; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 14px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .field { margin-bottom: 10px; }
+  .check { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); font-size: 14px; margin: 0 14px 0 0; }
+  .row-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 4px; margin-top: 8px; }
+  .row-opts select { width: auto; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .tab {
+    border: 0; background: none; padding: 8px 12px; cursor: pointer;
+    color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .tab[aria-selected=true] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+  .pane[hidden] { display: none; }
+
+  .btn {
+    border: 1px solid var(--line); background: #fff; border-radius: 6px;
+    padding: 7px 12px; cursor: pointer;
+  }
+  .btn:hover { border-color: #b9b4a8; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn.big { padding: 11px 18px; font-size: 16px; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  table.items { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+  table.items th { text-align: left; font-weight: 500; font-size: 12px; color: var(--muted); padding: 0 4px 4px; }
+  table.items td { padding: 2px; }
+  table.items td:nth-child(2) { width: 64px; }
+  table.items td:nth-child(3) { width: 90px; }
+  table.items td:nth-child(4) { width: 34px; }
+  .del { border: 0; background: none; color: var(--danger); cursor: pointer; font-size: 18px; line-height: 1; }
+
+  .help { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+  .help code { background: var(--accent-soft); color: var(--ink); padding: 0 4px; border-radius: 3px; }
+  .status { font-size: 13px; margin-top: 8px; color: var(--muted); }
+  .status.ok { color: var(--accent); }
+  .status.err { color: var(--danger); }
+  details summary { cursor: pointer; font-weight: 600; }
+  details[open] summary { margin-bottom: 10px; }
+
+  .preview-wrap { position: sticky; top: 12px; }
+  .preview-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 0 0 8px; }
+  .preview-head h2 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .preview-head span { font-size: 13px; color: var(--muted); }
+  #preview {
+    background: #e4e1da;
+    border-radius: 10px;
+    padding: 24px 12px;
+    display: flex;
+    justify-content: center;
+    overflow: auto;
+    max-height: calc(100vh - 80px);
+  }
+
+  /* Le ticket lui-même (aperçu et impression) */
+  .paper {
+    background: #fff;
+    color: #000;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 6px 18px rgba(0,0,0,.10);
+    font-family: "Courier New", Courier, monospace;
+    line-height: 1.25;
+    flex: none;
+  }
+  .paper .r { white-space: pre; }
+  .paper .r.b { font-weight: 700; }
+  .paper .r.big { font-size: 2em; line-height: 1.15; }
+
+  #printArea { position: absolute; left: -10000px; top: 0; }
+  #printArea .paper { box-shadow: none; }
+
+  @media print {
+    body { background: #fff; }
+    body > *:not(#printArea) { display: none !important; }
+    #printArea { position: static; }
+    #printArea .paper { break-after: page; page-break-after: always; }
+    #printArea .paper:last-child { break-after: auto; page-break-after: auto; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Testeur d'impression</h1>
+  <p>Écrivez du texte ou simulez un ticket de caisse, puis imprimez.</p>
+</header>
+
+<main>
+  <section>
+    <div class="card">
+      <h2>Papier</h2>
+      <div class="grid3">
+        <div>
+          <label for="paper">Format</label>
+          <select id="paper">
+            <option value="58">Ticket 58 mm</option>
+            <option value="80" selected>Ticket 80 mm</option>
+            <option value="a4">Feuille A4</option>
+          </select>
+        </div>
+        <div>
+          <label for="cols">Caractères / ligne</label>
+          <input id="cols" type="number" min="16" max="120" value="48">
+        </div>
+        <div>
+          <label for="copies">Copies</label>
+          <input id="copies" type="number" min="1" max="20" value="1">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" data-mode="text" aria-selected="true">Texte libre</button>
+        <button class="tab" role="tab" data-mode="ticket" aria-selected="false">Ticket de caisse</button>
+        <button class="tab" role="tab" data-mode="test" aria-selected="false">Page de test</button>
+      </div>
+
+      <!-- Texte libre -->
+      <div class="pane" data-pane="text">
+        <textarea id="freeText" rows="11"></textarea>
+        <div class="row-opts">
+          <select id="ftAlign" aria-label="Alignement">
+            <option value="left">Aligné à gauche</option>
+            <option value="center">Centré</option>
+            <option value="right">Aligné à droite</option>
+          </select>
+          <label class="check"><input type="checkbox" id="ftBold"> Gras</label>
+          <label class="check"><input type="checkbox" id="ftBig"> Grand</label>
+        </div>
+        <p class="help">
+          Raccourcis : <code># Titre</code> grand et centré, <code>## Sous-titre</code> gras centré,
+          <code>---</code> ou <code>===</code> séparateur, <code>^ texte</code> centré,
+          <code>&gt; texte</code> à droite, <code>**texte**</code> gras,
+          <code>gauche :: droite</code> deux colonnes.
+        </p>
+      </div>
+
+      <!-- Ticket -->
+      <div class="pane" data-pane="ticket" hidden>
+        <div class="field">
+          <label for="shop">Nom du commerce</label>
+          <input id="shop" type="text" value="Boulangerie du Coin">
+        </div>
+        <div class="field">
+          <label for="address">Adresse / infos (une par ligne)</label>
+          <textarea id="address" rows="3">12 rue de la Paix
+75002 Paris
+Tél. 01 23 45 67 89</textarea>
+        </div>
+        <label>Articles</label>
+        <table class="items">
+          <thead><tr><th>Désignation</th><th>Qté</th><th>Prix unit. €</th><th></th></tr></thead>
+          <tbody id="items"></tbody>
+        </table>
+        <div class="actions" style="margin-bottom:12px">
+          <button class="btn" id="addItem" type="button">+ Ajouter un article</button>
+          <button class="btn" id="randomTicket" type="button">🎲 Ticket aléatoire</button>
+        </div>
+        <div class="grid3">
+          <div class="field">
+            <label for="vat">TVA %</label>
+            <input id="vat" type="number" min="0" step="0.1" value="5.5">
+          </div>
+          <div class="field">
+            <label for="payment">Paiement</label>
+            <select id="payment">
+              <option>Carte bancaire</option>
+              <option>Espèces</option>
+              <option>Chèque</option>
+              <option>Titre-restaurant</option>
+            </select>
+          </div>
+          <div class="field" id="givenField" hidden>
+            <label for="given">Montant donné €</label>
+            <input id="given" type="number" min="0" step="0.01" value="20">
+          </div>
+        </div>
+        <div class="field">
+          <label for="footer">Message de fin</label>
+          <input id="footer" type="text" value="Merci de votre visite, à bientôt !">
+        </div>
+        <label class="check"><input type="checkbox" id="testMark" checked> Ajouter la mention « TICKET DE TEST »</label>
+      </div>
+
+      <!-- Page de test -->
+      <div class="pane" data-pane="test" hidden>
+        <p style="margin:0">
+          Imprime une page de diagnostic : règle de colonnes pour vérifier la largeur,
+          alignements, gras, grande taille, accents et symboles (€, °, £…),
+          ainsi que tous les caractères ASCII.
+        </p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="actions">
+        <button class="btn primary big" id="printBtn" type="button">🖨 Imprimer</button>
+      </div>
+      <p class="help">Ouvre la boîte d'impression du navigateur : choisissez votre imprimante (thermique, laser, PDF…).
+        Pour une imprimante ticket, mettez les marges à « Aucune » et l'échelle à 100 %.</p>
+    </div>
+
+    <div class="card">
+      <details id="escposBox">
+        <summary>Impression directe ESC/POS (imprimante thermique)</summary>
+        <p class="help" style="margin-top:0">
+          Envoie les commandes brutes à l'imprimante, sans pilote : coupe du papier, ouverture du tiroir-caisse…
+          Nécessite Chrome ou Edge. USB : l'imprimante ne doit pas être réservée par un pilote
+          (sous Windows, utilisez plutôt le port série virtuel ou le fichier .bin).
+        </p>
+        <div class="grid2">
+          <div class="field">
+            <label for="codepage">Jeu de caractères</label>
+            <select id="codepage">
+              <option value="cp858">CP858 – accents + € (ESC t 19)</option>
+              <option value="cp850">CP850 – accents (ESC t 2)</option>
+              <option value="ascii">ASCII – sans accents</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="baud">Vitesse port série</label>
+            <select id="baud">
+              <option>9600</option><option>19200</option><option>38400</option>
+              <option>57600</option><option selected>115200</option>
+            </select>
+          </div>
+        </div>
+        <div class="row-opts" style="margin:0 0 10px">
+          <label class="check"><input type="checkbox" id="cut" checked> Couper le papier</label>
+          <label class="check"><input type="checkbox" id="drawerAfter"> Ouvrir le tiroir après impression</label>
+        </div>
+        <div class="actions">
+          <button class="btn" id="connectUsb" type="button">Connecter USB</button>
+          <button class="btn" id="connectSerial" type="button">Connecter port série</button>
+          <button class="btn primary" id="rawPrint" type="button" disabled>Imprimer en ESC/POS</button>
+          <button class="btn" id="drawer" type="button" disabled>Ouvrir le tiroir</button>
+          <button class="btn" id="download" type="button">Télécharger .bin</button>
+        </div>
+        <div class="status" id="status">Non connecté.</div>
+        <p class="help">
+          Le fichier <code>.bin</code> peut être envoyé directement à l'imprimante :<br>
+          réseau : <code>nc 192.168.1.50 9100 &lt; ticket.bin</code><br>
+          Linux/macOS : <code>lp -d NomImprimante -o raw ticket.bin</code><br>
+          Windows : <code>copy /b ticket.bin \\NomPC\NomPartage</code>
+        </p>
+      </details>
+    </div>
+  </section>
+
+  <section class="preview-wrap">
+    <div class="preview-head">
+      <h2>Aperçu</h2>
+      <span><span id="previewInfo"></span> &nbsp;<button class="btn" id="printBtn2" type="button">🖨 Imprimer</button></span>
+    </div>
+    <div id="preview"></div>
+  </section>
+</main>
+
+<div id="printArea"></div>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => [...document.querySelectorAll(s)];
+
+  // ---------- Formats de papier ----------
+  // w = largeur papier, c = largeur imprimable, py = marge haut/bas (mm)
+  const PAPERS = {
+    58: { w: 58, c: 48, py: 3, cols: 32, label: '58 mm' },
+    80: { w: 80, c: 72, py: 3, cols: 48, label: '80 mm' },
+    a4: { w: 210, c: 180, py: 15, cols: 64, label: 'A4' },
+  };
+  const CHAR_RATIO = 0.6; // largeur d'un caractère Courier New / taille de police
+
+  function spec() {
+    const p = PAPERS[$('#paper').value];
+    const W = Math.max(16, Math.min(120, parseInt($('#cols').value, 10) || p.cols));
+    return { ...p, W, fs: p.c / (W * CHAR_RATIO) };
+  }
+
+  let mode = 'text';
+
+  // ---------- Mise en page ----------
+  // Une "ligne" logique : {t:'text', s, align, bold, big} | {t:'cols', l, r, bold, big}
+  //                       {t:'sep', ch} | {t:'feed', n}
+  function wrap(s, w) {
+    s = s.replace(/\s+$/, '');
+    if (s.length <= w) return [s];
+    const out = [];
+    let cur = '';
+    for (let word of s.split(/ +/)) {
+      while (word.length > w) {
+        if (cur) { out.push(cur); cur = ''; }
+        out.push(word.slice(0, w));
+        word = word.slice(w);
+      }
+      if (!cur) cur = word;
+      else if (cur.length + 1 + word.length <= w) cur += ' ' + word;
+      else { out.push(cur); cur = word; }
+    }
+    if (cur || !out.length) out.push(cur);
+    return out;
+  }
+
+  function align(s, w, a) {
+    if (a === 'right') return s.padStart(w);
+    if (a === 'center') return ' '.repeat(Math.max(0, Math.floor((w - s.length) / 2))) + s;
+    return s;
+  }
+
+  function twoCols(l, r, w) {
+    return l + ' '.repeat(Math.max(1, w - l.length - r.length)) + r;
+  }
+
+  function layout(lines, W) {
+    const rows = [];
+    for (const l of lines) {
+      const w = l.big ? Math.floor(W / 2) : W;
+      const st = { bold: !!l.bold, big: !!l.big };
+      if (l.t === 'sep') {
+        rows.push({ ...st, s: (l.ch || '-').repeat(w) });
+      } else if (l.t === 'feed') {
+        for (let i = 0; i < (l.n || 1); i++) rows.push({ s: '' });
+      } else if (l.t === 'cols') {
+        const r = String(l.r ?? '');
+        const left = wrap(String(l.l ?? ''), w);
+        const last = left.pop();
+        left.forEach((s) => rows.push({ ...st, s }));
+        if (last.length + r.length + 1 <= w) rows.push({ ...st, s: twoCols(last, r, w) });
+        else { rows.push({ ...st, s: last }); rows.push({ ...st, s: r.padStart(w) }); }
+      } else {
+        wrap(String(l.s ?? ''), w).forEach((s) => rows.push({ ...st, s: align(s, w, l.align) }));
+      }
+    }
+    return rows;
+  }
+
+  // ---------- Contenu : texte libre ----------
+  function freeLines() {
+    const baseAlign = $('#ftAlign').value;
+    const baseBold = $('#ftBold').checked;
+    const big = $('#ftBig').checked;
+    return $('#freeText').value.split('\n').map((line) => {
+      const trimmed = line.trim();
+      if (/^(-{3,}|={3,}|\*{3,})$/.test(trimmed)) return { t: 'sep', ch: trimmed[0] };
+      if (line.startsWith('# ')) return { t: 'text', s: line.slice(2), align: 'center', bold: true, big: true };
+      if (line.startsWith('## ')) return { t: 'text', s: line.slice(3), align: 'center', bold: true, big };
+      let a = baseAlign, b = baseBold;
+      if (line.startsWith('^ ')) { a = 'center'; line = line.slice(2); }
+      else if (line.startsWith('> ')) { a = 'right'; line = line.slice(2); }
+      const t = line.trim();
+      if (t.length > 4 && t.startsWith('**') && t.endsWith('**')) { b = true; line = t.slice(2, -2); }
+      if (line.includes(' :: ')) {
+        const [l, ...r] = line.split(' :: ');
+        return { t: 'cols', l, r: r.join(' :: '), bold: b, big };
+      }
+      return { t: 'text', s: line, align: a, bold: b, big };
+    });
+  }
+
+  // ---------- Contenu : ticket de caisse ----------
+  const PRODUCTS = [
+    ['Baguette tradition', 1.30], ['Croissant', 1.20], ['Pain au chocolat', 1.40],
+    ['Café expresso', 1.80], ['Cappuccino', 3.20], ['Eau minérale 50 cl', 1.00],
+    ['Jus d\'orange pressé', 3.50], ['Sandwich jambon-beurre', 4.80], ['Quiche lorraine', 4.20],
+    ['Éclair au café', 2.70], ['Tarte aux fraises', 3.90], ['Crème brûlée', 3.60],
+    ['Pain de campagne 400 g', 2.90], ['Chausson aux pommes', 1.70], ['Thé vert bio', 2.30],
+    ['Macaron (x6)', 9.00], ['Formule déjeuner', 9.90], ['Cookie chocolat', 2.10],
+  ];
+  let items = [
+    { name: 'Baguette tradition', qty: 2, price: 1.30 },
+    { name: 'Croissant', qty: 3, price: 1.20 },
+    { name: 'Café expresso', qty: 1, price: 1.80 },
+  ];
+  let ticketNo = rnd(1000, 99999);
+
+  function rnd(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+  const num = (v) => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) ? n : 0; };
+  const eur = (n) => n.toFixed(2).replace('.', ',') + ' €';
+
+  function renderItems() {
+    const tb = $('#items');
+    tb.innerHTML = '';
+    items.forEach((it, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="text" data-k="name" aria-label="Désignation"></td>
+        <td><input type="number" data-k="qty" min="0" step="1" aria-label="Quantité"></td>
+        <td><input type="number" data-k="price" min="0" step="0.01" aria-label="Prix unitaire"></td>
+        <td><button class="del" type="button" title="Supprimer" aria-label="Supprimer">×</button></td>`;
+      tr.querySelector('[data-k=name]').value = it.name;
+      tr.querySelector('[data-k=qty]').value = it.qty;
+      tr.querySelector('[data-k=price]').value = it.price.toFixed(2);
+      tr.querySelectorAll('input').forEach((inp) => inp.addEventListener('input', () => {
+        const k = inp.dataset.k;
+        items[i][k] = k === 'name' ? inp.value : num(inp.value);
+        update();
+      }));
+      tr.querySelector('.del').addEventListener('click', () => { items.splice(i, 1); renderItems(); update(); });
+      tb.appendChild(tr);
+    });
+  }
+
+  function ticketLines() {
+    const L = [];
+    const now = new Date();
+    const date = now.toLocaleDateString('fr-FR') + ' ' + now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const vat = num($('#vat').value);
+    const pay = $('#payment').value;
+
+    if ($('#testMark').checked) L.push({ t: 'text', s: '*** TICKET DE TEST ***', align: 'center', bold: true }, { t: 'feed' });
+    L.push({ t: 'text', s: $('#shop').value, align: 'center', bold: true, big: true });
+    $('#address').value.split('\n').filter((s) => s.trim()).forEach((s) => L.push({ t: 'text', s: s.trim(), align: 'center' }));
+    L.push({ t: 'sep' });
+    L.push({ t: 'cols', l: 'Ticket n° ' + String(ticketNo).padStart(6, '0'), r: date });
+    L.push({ t: 'cols', l: 'Caisse 1', r: 'Vendeur : Test' });
+    L.push({ t: 'sep' });
+
+    let total = 0, count = 0;
+    for (const it of items) {
+      if (!it.name && !it.price) continue;
+      const qty = it.qty || 0;
+      const line = qty * it.price;
+      total += line; count += qty;
+      if (qty === 1) L.push({ t: 'cols', l: it.name, r: eur(line) });
+      else {
+        L.push({ t: 'text', s: it.name });
+        L.push({ t: 'cols', l: `   ${qty} x ${eur(it.price)}`, r: eur(line) });
+      }
+    }
+    L.push({ t: 'sep' });
+    L.push({ t: 'cols', l: `${count} article${count > 1 ? 's' : ''}`, r: '' });
+    L.push({ t: 'cols', l: 'TOTAL', r: eur(total), bold: true, big: true });
+    const ht = total / (1 + vat / 100);
+    L.push({ t: 'cols', l: 'Total HT', r: eur(ht) });
+    L.push({ t: 'cols', l: `TVA ${String(vat).replace('.', ',')} %`, r: eur(total - ht) });
+    L.push({ t: 'sep' });
+    if (pay === 'Espèces') {
+      const given = num($('#given').value);
+      L.push({ t: 'cols', l: 'Espèces reçues', r: eur(given) });
+      L.push({ t: 'cols', l: 'Rendu monnaie', r: eur(Math.max(0, given - total)), bold: true });
+    } else {
+      L.push({ t: 'cols', l: pay, r: eur(total) });
+      if (pay === 'Carte bancaire') L.push({ t: 'text', s: 'Paiement sans contact - accepté' });
+    }
+    L.push({ t: 'feed' });
+    if ($('#footer').value.trim()) L.push({ t: 'text', s: $('#footer').value.trim(), align: 'center' });
+    if ($('#testMark').checked) L.push({ t: 'feed' }, { t: 'text', s: 'Document sans valeur', align: 'center' });
+    return L;
+  }
+
+  // ---------- Contenu : page de test ----------
+  function testLines(W) {
+    const now = new Date().toLocaleString('fr-FR');
+    let ruler = '', tens = '';
+    for (let i = 1; i <= W; i++) {
+      ruler += i % 10;
+      tens += i % 10 === 0 ? String(i / 10 % 10) : ' ';
+    }
+    let ascii = '';
+    for (let c = 33; c < 127; c++) ascii += String.fromCharCode(c);
+    return [
+      { t: 'text', s: 'PAGE DE TEST', align: 'center', bold: true, big: true },
+      { t: 'text', s: now, align: 'center' },
+      { t: 'sep', ch: '=' },
+      { t: 'text', s: `Largeur : ${W} caractères par ligne` },
+      { t: 'text', s: tens },
+      { t: 'text', s: ruler },
+      { t: 'text', s: 'La règle doit tenir sur une seule ligne, sans retour.' },
+      { t: 'sep' },
+      { t: 'text', s: 'Aligné à gauche' },
+      { t: 'text', s: 'Centré', align: 'center' },
+      { t: 'text', s: 'Aligné à droite', align: 'right' },
+      { t: 'cols', l: 'Colonne gauche', r: 'Colonne droite' },
+      { t: 'sep' },
+      { t: 'text', s: 'Texte normal' },
+      { t: 'text', s: 'Texte en gras', bold: true },
+      { t: 'text', s: 'Grand texte', big: true },
+      { t: 'text', s: 'Grand et gras', big: true, bold: true },
+      { t: 'sep' },
+      { t: 'text', s: 'Accents :' },
+      { t: 'text', s: 'à â ä é è ê ë î ï ô ö ù û ü ç ÿ' },
+      { t: 'text', s: 'À Â Ä É È Ê Ë Î Ï Ô Ö Ù Û Ü Ç' },
+      { t: 'text', s: 'Symboles : € £ $ ° % & @ # § µ ² ³ ½ « »' },
+      { t: 'sep' },
+      { t: 'text', s: 'ASCII :' },
+      { t: 'text', s: ascii },
+      { t: 'sep' },
+      { t: 'text', s: 'Le vif zéphyr jubile sur les kumquats du clown gracieux.' },
+      { t: 'text', s: 'THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG 0123456789' },
+      { t: 'sep', ch: '=' },
+      { t: 'text', s: 'Fin de la page de test', align: 'center', bold: true },
+    ];
+  }
+
+  function currentLines() {
+    if (mode === 'ticket') return ticketLines();
+    if (mode === 'test') return testLines(spec().W);
+    return freeLines();
+  }
+
+  // ---------- Rendu HTML ----------
+  function buildPaper(rows, sp, z) {
+    const paper = document.createElement('div');
+    paper.className = 'paper';
+    paper.style.width = sp.w * z + 'mm';
+    paper.style.padding = `${sp.py * z}mm ${((sp.w - sp.c) / 2) * z}mm`;
+    paper.style.fontSize = sp.fs * z + 'mm';
+    for (const r of rows) {
+      const d = document.createElement('div');
+      d.className = 'r' + (r.bold ? ' b' : '') + (r.big ? ' big' : '');
+      d.textContent = r.s.replace(/\s+$/, '') || '\u00a0';
+      paper.appendChild(d);
+    }
+    return paper;
+  }
+
+  function update() {
+    const sp = spec();
+    const rows = layout(currentLines(), sp.W);
+    const box = $('#preview');
+    const avail = Math.max(200, box.clientWidth - 24);
+    const z = Math.min(1.7, avail / (sp.w * 96 / 25.4));
+    box.replaceChildren(buildPaper(rows, sp, z));
+    $('#previewInfo').textContent = `${sp.label} · ${sp.W} car./ligne · ${rows.length} lignes`;
+  }
+
+  // ---------- Impression via le navigateur ----------
+  function printBrowser() {
+    const sp = spec();
+    const rows = layout(currentLines(), sp.W);
+    const area = $('#printArea');
+    const one = buildPaper(rows, sp, 1);
+    area.replaceChildren(one);
+    const copies = Math.max(1, Math.min(20, parseInt($('#copies').value, 10) || 1));
+    let pageCss;
+    if ($('#paper').value === 'a4') {
+      pageCss = '@page { size: A4; margin: 0; }';
+    } else {
+      const hmm = Math.ceil(one.getBoundingClientRect().height * 25.4 / 96) + 2;
+      pageCss = `@page { size: ${sp.w}mm ${hmm}mm; margin: 0; }`;
+    }
+    $('#page-style').textContent = pageCss;
+    for (let i = 1; i < copies; i++) area.appendChild(one.cloneNode(true));
+    window.print();
+  }
+
+  // ---------- ESC/POS ----------
+  const CP850 = {
+    'Ç':0x80,'ü':0x81,'é':0x82,'â':0x83,'ä':0x84,'à':0x85,'å':0x86,'ç':0x87,'ê':0x88,'ë':0x89,
+    'è':0x8A,'ï':0x8B,'î':0x8C,'ì':0x8D,'Ä':0x8E,'Å':0x8F,'É':0x90,'æ':0x91,'Æ':0x92,'ô':0x93,
+    'ö':0x94,'ò':0x95,'û':0x96,'ù':0x97,'ÿ':0x98,'Ö':0x99,'Ü':0x9A,'ø':0x9B,'£':0x9C,'Ø':0x9D,
+    '×':0x9E,'á':0xA0,'í':0xA1,'ó':0xA2,'ú':0xA3,'ñ':0xA4,'Ñ':0xA5,'ª':0xA6,'º':0xA7,'¿':0xA8,
+    '®':0xA9,'¬':0xAA,'½':0xAB,'¼':0xAC,'¡':0xAD,'«':0xAE,'»':0xAF,'Á':0xB5,'Â':0xB6,'À':0xB7,
+    '©':0xB8,'¢':0xBD,'¥':0xBE,'ã':0xC6,'Ã':0xC7,'¤':0xCF,'Ê':0xD2,'Ë':0xD3,'È':0xD4,'Í':0xD6,
+    'Î':0xD7,'Ï':0xD8,'Ì':0xDE,'Ó':0xE0,'ß':0xE1,'Ô':0xE2,'Ò':0xE3,'õ':0xE4,'Õ':0xE5,'µ':0xE6,
+    'Ú':0xE9,'Û':0xEA,'Ù':0xEB,'ý':0xEC,'Ý':0xED,'´':0xEF,'±':0xF1,'¾':0xF3,'§':0xF5,'÷':0xF6,
+    '°':0xF8,'·':0xFA,'¹':0xFB,'³':0xFC,'²':0xFD,
+  };
+  const CP858 = { ...CP850, '€': 0xD5 };
+  const TABLES = { cp850: CP850, cp858: CP858, ascii: {} };
+  const SUBST = { 'œ':'oe','Œ':'OE','’':"'",'‘':"'",'“':'"','”':'"','…':'...','–':'-','—':'-','\u00a0':' ','\u202f':' ','Ÿ':'Y' };
+
+  // Remplace ce que la page de code ne sait pas imprimer, AVANT la mise en page
+  // (pour que les colonnes restent alignées).
+  function sanitize(s, cp) {
+    const table = TABLES[cp];
+    let out = '';
+    for (const ch of String(s ?? '').normalize('NFC')) {
+      if (ch.charCodeAt(0) < 128 || table[ch]) { out += ch; continue; }
+      if (SUBST[ch]) { out += SUBST[ch]; continue; }
+      if (ch === '€') { out += 'EUR'; continue; }
+      const base = ch.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      out += base.length && base.charCodeAt(0) < 128 ? base : '?';
+    }
+    return out;
+  }
+
+  function encode(s, cp) {
+    const table = TABLES[cp];
+    const out = [];
+    for (const ch of s) {
+      const c = ch.charCodeAt(0);
+      out.push(c < 128 ? c : (table[ch] ?? 0x3F));
+    }
+    return out;
+  }
+
+  function escposBytes() {
+    const cp = $('#codepage').value;
+    const sp = spec();
+    const lines = currentLines().map((l) => ({
+      ...l,
+      s: l.s !== undefined ? sanitize(l.s, cp) : undefined,
+      l: l.l !== undefined ? sanitize(l.l, cp) : undefined,
+      r: l.r !== undefined ? sanitize(l.r, cp) : undefined,
+    }));
+    const rows = layout(lines, sp.W);
+    const copies = Math.max(1, Math.min(20, parseInt($('#copies').value, 10) || 1));
+    const b = [0x1B, 0x40]; // ESC @ : initialisation
+    if (cp === 'cp858') b.push(0x1B, 0x74, 19);
+    if (cp === 'cp850') b.push(0x1B, 0x74, 2);
+    for (let c = 0; c < copies; c++) {
+      for (const r of rows) {
+        b.push(0x1B, 0x45, r.bold ? 1 : 0);         // ESC E : gras
+        b.push(0x1D, 0x21, r.big ? 0x11 : 0x00);    // GS ! : double hauteur + largeur
+        b.push(...encode(r.s.replace(/\s+$/, ''), cp), 0x0A);
+      }
+      b.push(0x1B, 0x45, 0, 0x1D, 0x21, 0);
+      if ($('#cut').checked) b.push(0x1D, 0x56, 0x42, 0x03); // GS V B : avance + coupe partielle
+      else b.push(0x1B, 0x64, 4);                          // ESC d 4 : avance 4 lignes
+    }
+    if ($('#drawerAfter').checked) b.push(...DRAWER);
+    return new Uint8Array(b);
+  }
+  const DRAWER = [0x1B, 0x70, 0x00, 0x19, 0xFA]; // ESC p 0 : impulsion tiroir
+
+  let conn = null;
+  function setStatus(msg, kind) {
+    const el = $('#status');
+    el.textContent = msg;
+    el.className = 'status' + (kind ? ' ' + kind : '');
+  }
+  function setConnected(c) {
+    conn = c;
+    $('#rawPrint').disabled = !c;
+    $('#drawer').disabled = !c;
+    if (c) setStatus('Connecté : ' + c.name, 'ok');
+  }
+
+  async function connectUsb() {
+    if (!navigator.usb) return setStatus('WebUSB non disponible : utilisez Chrome ou Edge (via https, localhost ou fichier local).', 'err');
+    try {
+      if (conn) await conn.close().catch(() => {});
+      const dev = await navigator.usb.requestDevice({ filters: [] });
+      await dev.open();
+      if (!dev.configuration) await dev.selectConfiguration(1);
+      let found = null;
+      for (const itf of dev.configuration.interfaces) {
+        for (const alt of itf.alternates) {
+          const ep = alt.endpoints.find((e) => e.direction === 'out' && e.type === 'bulk');
+          if (ep && (!found || alt.interfaceClass === 7)) found = { itf, alt, ep };
+        }
+      }
+      if (!found) throw new Error('aucune sortie USB de type imprimante trouvée');
+      await dev.claimInterface(found.itf.interfaceNumber);
+      if (found.alt.alternateSetting) await dev.selectAlternateInterface(found.itf.interfaceNumber, found.alt.alternateSetting);
+      setConnected({
+        name: (dev.manufacturerName ? dev.manufacturerName + ' ' : '') + (dev.productName || 'imprimante USB'),
+        write: async (data) => {
+          for (let i = 0; i < data.length; i += 4096) await dev.transferOut(found.ep.endpointNumber, data.slice(i, i + 4096));
+        },
+        close: () => dev.close(),
+      });
+    } catch (e) {
+      if (e.name === 'NotFoundError') return setStatus('Aucun appareil choisi.');
+      setStatus('Échec USB : ' + e.message + (e.name === 'SecurityError' || /claim|access/i.test(e.message)
+        ? ' (appareil réservé par un pilote ?)' : ''), 'err');
+    }
+  }
+
+  async function connectSerial() {
+    if (!navigator.serial) return setStatus('Web Serial non disponible : utilisez Chrome ou Edge.', 'err');
+    try {
+      if (conn) await conn.close().catch(() => {});
+      const port = await navigator.serial.requestPort();
+      await port.open({ baudRate: parseInt($('#baud').value, 10) });
+      setConnected({
+        name: 'port série à ' + $('#baud').value + ' bauds',
+        write: async (data) => {
+          const w = port.writable.getWriter();
+          try { await w.write(data); } finally { w.releaseLock(); }
+        },
+        close: () => port.close(),
+      });
+    } catch (e) {
+      if (e.name === 'NotFoundError') return setStatus('Aucun port choisi.');
+      setStatus('Échec port série : ' + e.message, 'err');
+    }
+  }
+
+  async function send(data, label) {
+    if (!conn) return;
+    try {
+      setStatus('Envoi…');
+      await conn.write(data);
+      setStatus(`${label} envoyé (${data.length} octets) à ${conn.name}.`, 'ok');
+    } catch (e) {
+      setStatus('Erreur d\'envoi : ' + e.message, 'err');
+    }
+  }
+
+  function download() {
+    const blob = new Blob([escposBytes()], { type: 'application/octet-stream' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = mode === 'ticket' ? 'ticket.bin' : mode === 'test' ? 'page-de-test.bin' : 'texte.bin';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  // ---------- Événements ----------
+  $('#freeText').value = [
+    '# Bonjour !',
+    '^ Test d\'impression',
+    '---',
+    'Écrivez ce que vous voulez ici, l\'aperçu',
+    'se met à jour en direct.',
+    '',
+    'Café :: 1,80 €',
+    'Croissant :: 1,20 €',
+    '===',
+    '**TOTAL :: 3,00 €**',
+    '> Merci !',
+  ].join('\n');
+
+  $$('.tab').forEach((t) => t.addEventListener('click', () => {
+    mode = t.dataset.mode;
+    $$('.tab').forEach((x) => x.setAttribute('aria-selected', String(x === t)));
+    $$('.pane').forEach((p) => { p.hidden = p.dataset.pane !== mode; });
+    update();
+  }));
+
+  $('#paper').addEventListener('change', () => { $('#cols').value = PAPERS[$('#paper').value].cols; update(); });
+  $('#payment').addEventListener('change', () => { $('#givenField').hidden = $('#payment').value !== 'Espèces'; update(); });
+  $('#addItem').addEventListener('click', () => {
+    const [name, price] = PRODUCTS[rnd(0, PRODUCTS.length - 1)];
+    items.push({ name, qty: 1, price });
+    renderItems(); update();
+  });
+  $('#randomTicket').addEventListener('click', () => {
+    const pool = [...PRODUCTS].sort(() => Math.random() - 0.5);
+    items = pool.slice(0, rnd(2, 7)).map(([name, price]) => ({ name, qty: Math.random() < 0.65 ? 1 : rnd(2, 4), price }));
+    ticketNo = rnd(1000, 99999);
+    const pays = $('#payment').options;
+    $('#payment').selectedIndex = rnd(0, pays.length - 1);
+    $('#givenField').hidden = $('#payment').value !== 'Espèces';
+    renderItems(); update();
+  });
+
+  document.querySelectorAll('input, select, textarea').forEach((el) => {
+    if (!el.closest('#items')) el.addEventListener('input', update);
+  });
+
+  $('#printBtn').addEventListener('click', printBrowser);
+  $('#printBtn2').addEventListener('click', printBrowser);
+  $('#connectUsb').addEventListener('click', connectUsb);
+  $('#connectSerial').addEventListener('click', connectSerial);
+  $('#rawPrint').addEventListener('click', () => send(escposBytes(), 'Ticket'));
+  $('#drawer').addEventListener('click', () => send(new Uint8Array(DRAWER), 'Ouverture tiroir'));
+  $('#download').addEventListener('click', download);
+  window.addEventListener('resize', update);
+
+  renderItems();
+  update();
+})();
+</script>
+</body>
+</html>
