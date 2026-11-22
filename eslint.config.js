@@ -20,5 +20,9 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: ['tests/**'],
+    rules: { '@typescript-eslint/no-non-null-assertion': 'off' },
+  },
   prettier,
 );
