@@ -136,6 +136,12 @@
   .diag li .a .btn { padding: 4px 10px; font-size: 13px; }
   .diag li.err b { color: var(--danger); }
   .diag li.ok b { color: var(--accent); }
+  details.steps { margin-top: 12px; font-size: 14px; }
+  details.steps summary { cursor: pointer; font-weight: 600; }
+  details.steps p { margin: 8px 0 4px; }
+  details.steps ol { margin: 0; padding-left: 20px; }
+  details.steps li { margin-bottom: 4px; }
+  .online summary { cursor: pointer; }
   .online { margin: 12px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--accent-soft); font-size: 14px; }
   .online[hidden] { display: none; }
   .online p { margin: 0 0 6px; }
@@ -166,6 +172,48 @@
 
 <main>
   <section>
+    <div class="card" id="epsonCard">
+      <h2>Epson TM-m30 — depuis l'iPhone</h2>
+      <div class="grid3">
+        <div style="grid-column: span 2">
+          <label for="epIp">IP de l'imprimante Epson</label>
+          <input id="epIp" type="text" placeholder="ex. 192.168.1.50" inputmode="decimal" autocomplete="off" spellcheck="false">
+        </div>
+        <div>
+          <label for="epProto">Connexion</label>
+          <select id="epProto">
+            <option value="https">HTTPS</option>
+            <option value="http">HTTP</option>
+          </select>
+        </div>
+      </div>
+      <div class="actions" style="margin-top:10px">
+        <button class="btn" id="epTest" type="button">🔧 Tester</button>
+        <button class="btn primary" id="epWifi" type="button">📶 Imprimer en Wi-Fi</button>
+        <button class="btn" id="epBt" type="button">🔵 Imprimer en Bluetooth</button>
+      </div>
+      <details class="steps" id="epHelp">
+        <summary>Première fois sur cet iPhone</summary>
+        <p><b>Wi-Fi (sans app)</b></p>
+        <ol>
+          <li>L'iPhone doit être sur le même Wi-Fi que l'imprimante.</li>
+          <li>Trouvez l'IP de l'Epson : elle figure sur sa page d'état (en général : imprimante éteinte,
+            maintenir le bouton d'avance papier en l'allumant). Tapez-la ci-dessus.</li>
+          <li>Touchez <a id="epOpen" href="#" target="_blank" rel="noopener">Ouvrir la page de l'imprimante</a>.
+            Safari affiche « Cette connexion n'est pas privée » : touchez « Afficher les détails », puis
+            « visiter ce site web », et confirmez. C'est normal : le certificat est celui de l'imprimante.</li>
+          <li>Revenez ici et touchez <b>Tester</b>.</li>
+        </ol>
+        <p><b>Bluetooth (avec l'app Epson)</b></p>
+        <ol>
+          <li>Installez l'app gratuite <b>Epson TM Print Assistant</b> (App Store).</li>
+          <li>Dans l'app, ajoutez l'imprimante en Bluetooth (le voyant Bluetooth de l'Epson doit être allumé).</li>
+          <li>Touchez <b>Imprimer en Bluetooth</b> ici : l'app s'ouvre et imprime, puis revenez dans Safari.</li>
+        </ol>
+      </details>
+      <ol class="diag" id="epOut"></ol>
+    </div>
+
     <div class="card" id="diagCard">
       <h2>Diagnostic</h2>
       <div class="grid3" id="ipRow">
@@ -183,8 +231,9 @@
         <button class="btn" id="scanBtn" type="button">🔍 Chercher les imprimantes réseau</button>
         <button class="btn" id="ipPrintBtn" type="button">🖨 Imprimer sur l'IP</button>
       </div>
-      <div class="online" id="onlineBox" hidden>
-        <p><b>Version en ligne.</b> Depuis cette page (HTTPS), le navigateur ne peut pas joindre l'imprimante ticket :
+      <details class="online" id="onlineBox" hidden>
+        <summary><b>Imprimante réseau via l'ordinateur de caisse</b></summary>
+        <p style="margin-top:8px"><b>Version en ligne.</b> Depuis cette page (HTTPS), le navigateur ne peut pas joindre l'imprimante ticket :
           le bouton Imprimer passe seulement par AirPrint.</p>
         <p><b>Pour tester l'imprimante ticket depuis l'iPhone :</b></p>
         <ol>
@@ -198,7 +247,7 @@
             c'est ce testeur, et cette fois il imprime vraiment.</li>
           <li>Pour revenir à l'app de caisse : Ctrl+C dans la fenêtre noire, puis relancez la commande habituelle de la passerelle.</li>
         </ol>
-      </div>
+      </details>
       <ol class="diag" id="diagOut"></ol>
     </div>
 
@@ -208,9 +257,9 @@
         <div>
           <label for="paper">Format</label>
           <select id="paper">
-            <option value="58">Ticket 58 mm</option>
-            <option value="80" selected>Ticket 80 mm</option>
-            <option value="a4">Feuille A4</option>
+            <option value="58">58 mm</option>
+            <option value="80" selected>80 mm</option>
+            <option value="a4">A4</option>
           </select>
         </div>
         <div>
@@ -905,7 +954,7 @@ Tél. 01 23 45 67 89</textarea>
   const ICONS = { ok: '✅', warn: '⚠️', err: '❌', info: 'ℹ️', run: '⏳' };
 
   // Ajoute une ligne de résultat. detail est du HTML déjà échappé.
-  function report(kind, title, detail = '', actions = []) {
+  function report(kind, title, detail = '', actions = [], target = '#diagOut') {
     const li = document.createElement('li');
     li.className = kind;
     li.innerHTML = `<span class="i">${ICONS[kind]}</span><div><b>${esc(title)}</b>${detail ? `<div class="d">${detail}</div>` : ''}</div>`;
@@ -920,12 +969,12 @@ Tél. 01 23 45 67 89</textarea>
       }
       li.lastElementChild.appendChild(a);
     }
-    $('#diagOut').appendChild(li);
+    $(target).appendChild(li);
     return li;
   }
-  function pending(title) {
-    const li = report('run', title);
-    return (kind, t, detail, actions) => { const n = report(kind, t, detail, actions); li.replaceWith(n); return n; };
+  function pending(title, target = '#diagOut') {
+    const li = report('run', title, '', [], target);
+    return (kind, t, detail, actions) => { const n = report(kind, t, detail, actions, target); li.replaceWith(n); return n; };
   }
 
   function getIp() {
@@ -1124,6 +1173,167 @@ Tél. 01 23 45 67 89</textarea>
     } finally { $('#scanBtn').disabled = false; }
   }
 
+  // ---------- Epson TM-m30 : ePOS-Print (Wi-Fi) et TM Print Assistant (Bluetooth) ----------
+  const EPOS_NS = 'http://www.epson-pos.com/schemas/2011/03/epos-print';
+  const xmlEsc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c]));
+
+  // Ticket courant -> document <epos-print>. La mise en page (colonnes) est la même que pour l'aperçu.
+  function eposPrintXml(override) {
+    const sp = spec();
+    const rows = layout(override || currentLines(), sp.W);
+    const copies = override ? 1 : Math.max(1, Math.min(20, parseInt($('#copies').value, 10) || 1));
+    let body = '';
+    for (let c = 0; c < copies; c++) {
+      body += '<text lang="en" smooth="true"/>';
+      for (const r of rows) {
+        const size = r.big ? 2 : 1;
+        body += `<text em="${r.bold ? 'true' : 'false'}" width="${size}" height="${size}">${xmlEsc(r.s.replace(/\s+$/, ''))}&#10;</text>`;
+      }
+      body += '<text em="false" width="1" height="1"/>';
+      body += $('#cut').checked ? '<cut type="feed"/>' : '<feed line="4"/>';
+    }
+    if (!override && $('#drawerAfter').checked) body += '<pulse drawer="drawer_1" time="pulse_100"/>';
+    return `<epos-print xmlns="${EPOS_NS}">${body}</epos-print>`;
+  }
+  const soap = (inner) => '<?xml version="1.0" encoding="utf-8"?>'
+    + '<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body>' + inner + '</s:Body></s:Envelope>';
+
+  const EPOS_CODES = {
+    EPTR_COVER_OPEN: 'capot ouvert',
+    EPTR_REC_EMPTY: 'plus de papier',
+    EPTR_CUTTER: 'erreur du massicot (papier coincé ?)',
+    EPTR_MECHANICAL: 'erreur mécanique',
+    EPTR_AUTOMATICAL: 'erreur récupérable (surchauffe, papier…) : patientez puis réessayez',
+    EPTR_UNRECOVERABLE: 'erreur grave : éteignez et rallumez l\'imprimante',
+    DeviceNotFound: 'imprimante interne introuvable (identifiant « local_printer »)',
+    SchemaError: 'données refusées par l\'imprimante (format)',
+    PrintSystemError: 'erreur du système d\'impression',
+    EX_TIMEOUT: 'délai dépassé',
+    EX_BADPORT: 'port de communication indisponible',
+  };
+  const EPOS_STATUS = [
+    [0x1, 'pas de réponse de l\'imprimante'], [0x8, 'hors ligne'], [0x20, 'capot ouvert'],
+    [0x40, 'avance papier en cours'], [0x400, 'erreur mécanique'], [0x800, 'erreur du massicot'],
+    [0x2000, 'erreur grave'], [0x4000, 'erreur récupérable'], [0x20000, 'papier presque fini'], [0x80000, 'plus de papier'],
+  ];
+  const statusText = (st) => EPOS_STATUS.filter(([bit]) => (st & bit) !== 0).map(([, t]) => t);
+
+  const epIp = () => $('#epIp').value.trim();
+  function epUrl() {
+    return `${$('#epProto').value}://${epIp()}/cgi-bin/epos/service.cgi?devid=local_printer&timeout=10000`;
+  }
+  function saveEp() {
+    try { localStorage.setItem('testeur.epIp', epIp()); localStorage.setItem('testeur.epProto', $('#epProto').value); } catch (e) {}
+    $('#epOpen').href = epIp() ? `${$('#epProto').value}://${epIp()}/` : '#';
+  }
+
+  async function eposSend(inner) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 20000);
+    try {
+      const r = await fetch(epUrl(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/xml; charset=utf-8',
+          'If-Modified-Since': 'Thu, 01 Jan 1970 00:00:00 GMT',
+          'SOAPAction': '""',
+        },
+        body: soap(inner),
+        signal: ctrl.signal,
+      });
+      const text = await r.text();
+      const doc = new DOMParser().parseFromString(text, 'text/xml');
+      const res = [...doc.getElementsByTagName('*')].find((e) => e.localName === 'response');
+      if (!res) throw Object.assign(new Error(`réponse inattendue de l'imprimante (HTTP ${r.status})`), { kind: 'format' });
+      return {
+        success: res.getAttribute('success') === 'true',
+        code: res.getAttribute('code') || '',
+        status: parseInt(res.getAttribute('status') || '0', 10),
+      };
+    } catch (e) {
+      if (e.name === 'AbortError') throw Object.assign(new Error('pas de réponse (délai dépassé)'), { kind: 'net' });
+      if (e instanceof TypeError) throw Object.assign(new Error('connexion impossible'), { kind: 'net' });
+      throw e;
+    } finally { clearTimeout(t); }
+  }
+
+  function netHelp() {
+    const https = $('#epProto').value === 'https';
+    const items = [];
+    if (ONLINE && !https) items.push('Cette page est en HTTPS : Safari bloque les connexions HTTP. Choisissez <b>HTTPS</b>.');
+    if (https) items.push(`Ouvrez <a href="https://${esc(epIp())}/" target="_blank" rel="noopener">https://${esc(epIp())}</a> et acceptez l'avertissement de sécurité (voir « Première fois »), puis retestez.`);
+    items.push('Vérifiez que l\'iPhone est sur le même Wi-Fi que l\'imprimante, et que l\'IP est la bonne (page d\'état de l\'Epson).');
+    items.push('Si la page de l\'imprimante s\'ouvre mais que le test échoue : la fonction « ePOS-Print » est peut-être désactivée dans ses réglages (Web Config).');
+    return '<br>• ' + items.join('<br>• ');
+  }
+
+  function reportEposResult(done, r, okTitle) {
+    const problems = statusText(r.status);
+    if (r.success) {
+      done('ok', okTitle, problems.length ? 'Attention : ' + esc(problems.join(', ')) : 'Imprimante prête.');
+    } else {
+      const why = EPOS_CODES[r.code] || r.code || 'raison inconnue';
+      const more = problems.filter((x) => x !== why);
+      done('err', 'L\'imprimante a refusé', esc(why) + (more.length ? ' — ' + esc(more.join(', ')) : ''));
+    }
+  }
+
+  function needIp() {
+    saveEp();
+    if (epIp()) return true;
+    report('warn', 'Saisissez d\'abord l\'IP de l\'imprimante Epson.', 'Elle figure sur sa page d\'état.', [], '#epOut');
+    $('#epIp').focus();
+    return false;
+  }
+
+  async function epTest() {
+    $('#epOut').replaceChildren();
+    if (!needIp()) return;
+    const done = pending(`Connexion à ${epIp()} en Wi-Fi…`, '#epOut');
+    try {
+      const r = await eposSend(`<epos-print xmlns="${EPOS_NS}"/>`);
+      reportEposResult(done, r, 'Connexion Wi-Fi OK');
+    } catch (e) {
+      done('err', 'Imprimante injoignable en Wi-Fi', esc(e.message) + '.' + (e.kind === 'net' ? netHelp() : ''));
+    }
+  }
+
+  async function epWifi() {
+    $('#epOut').replaceChildren();
+    if (!needIp()) return;
+    $('#epWifi').disabled = true;
+    const done = pending('Impression en Wi-Fi…', '#epOut');
+    try {
+      const r = await eposSend(eposPrintXml());
+      reportEposResult(done, r, 'Ticket imprimé en Wi-Fi');
+    } catch (e) {
+      done('err', 'Impression Wi-Fi impossible', esc(e.message) + '.' + (e.kind === 'net' ? netHelp() : ''));
+    } finally { $('#epWifi').disabled = false; }
+  }
+
+  function epBluetooth() {
+    $('#epOut').replaceChildren();
+    const xml = eposPrintXml();
+    const url = 'tmprintassistant://tmprintassistant.epson.com/print?ver=1&data-type=eposprintxml&data=' + encodeURIComponent(xml);
+    if (url.length > 190000) {
+      report('err', 'Ticket trop long pour l\'app Epson', 'Réduisez le texte ou le nombre de copies.', [], '#epOut');
+      return;
+    }
+    let left = false;
+    const onHide = () => { if (document.visibilityState === 'hidden') left = true; };
+    document.addEventListener('visibilitychange', onHide);
+    location.href = url;
+    setTimeout(() => {
+      document.removeEventListener('visibilitychange', onHide);
+      if (left) {
+        report('ok', 'Ticket envoyé à l\'app Epson', 'Si rien ne sort : dans l\'app, vérifiez que l\'imprimante Bluetooth est bien sélectionnée.', [], '#epOut');
+      } else {
+        report('err', 'L\'app Epson ne s\'est pas ouverte', 'Installez l\'app gratuite <b>Epson TM Print Assistant</b> depuis l\'App Store, '
+          + 'ajoutez-y l\'imprimante en Bluetooth, puis réessayez. Si Safari a demandé « Ouvrir dans l\'app ? », acceptez.', [], '#epOut');
+      }
+    }, 2500);
+  }
+
   // ---------- Événements ----------
   $('#freeText').value = [
     '# Bonjour !',
@@ -1175,6 +1385,17 @@ Tél. 01 23 45 67 89</textarea>
   $('#drawer').addEventListener('click', () => send(new Uint8Array(DRAWER), 'Ouverture tiroir'));
   $('#download').addEventListener('click', download);
   $('#diagBtn').addEventListener('click', runDiag);
+  $('#epTest').addEventListener('click', epTest);
+  $('#epWifi').addEventListener('click', epWifi);
+  $('#epBt').addEventListener('click', epBluetooth);
+  $('#epIp').addEventListener('input', saveEp);
+  $('#epProto').addEventListener('change', saveEp);
+  $('#epIp').addEventListener('keydown', (e) => { if (e.key === 'Enter') epTest(); });
+  try {
+    $('#epIp').value = localStorage.getItem('testeur.epIp') || '';
+    $('#epProto').value = localStorage.getItem('testeur.epProto') || (location.protocol === 'https:' ? 'https' : 'http');
+  } catch (e) { $('#epProto').value = location.protocol === 'https:' ? 'https' : 'http'; }
+  saveEp();
   $('#scanBtn').addEventListener('click', runScan);
   $('#ipPrintBtn').addEventListener('click', (e) => { $('#diagOut').replaceChildren(); sendToIp(escposBytes(), 'Impression', e.currentTarget); });
   $('#ip').addEventListener('keydown', (e) => { if (e.key === 'Enter') runDiag(); });
