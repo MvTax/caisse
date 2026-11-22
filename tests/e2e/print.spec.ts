@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { BRIDGE, mockBridge, type Mode } from './bridgeMock';
+import { BRIDGE, mockBridge, useBridgeMode, type Mode } from './bridgeMock';
 
 async function orderSandwich(page: Page, bipper = 'Bipper 18') {
   await page.getByRole('button', { name: /^Sandwich/ }).click();
@@ -87,6 +87,7 @@ test('passerelle muette : délai dépassé, message clair', async ({ page }) => 
 });
 
 test('passerelle absente : pastille grise, message en français', async ({ page }) => {
+  await useBridgeMode(page);
   await page.route(`${BRIDGE}/api/**`, (route) => route.abort('connectionrefused'));
   await page.goto('/');
   await expect(page.getByTestId('printer-pill')).toHaveAttribute('data-state', 'off');

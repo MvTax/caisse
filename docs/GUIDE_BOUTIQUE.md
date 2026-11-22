@@ -2,6 +2,19 @@
 
 > À garder près de la caisse. Aucun logiciel n'est installé : tout s'arrête quand on ferme la fenêtre.
 
+## Avec l'imprimante Epson (réglage par défaut) : rien à lancer
+
+L'iPhone imprime directement sur l'**Epson TM-m30II** en Wi-Fi.
+
+1. L'iPhone est sur le Wi-Fi **Mangos** (Réglages → Wi-Fi → (i) : l'adresse IP commence par `192.168.1.`).
+2. Ouvre **https://mvtax.github.io/caisse/** dans Safari (1ʳᵉ fois : Partager → **Sur l'écran d'accueil**).
+3. **Une seule fois par iPhone** : ⚙️ Réglages → Impression → « Ouvrir la page de l'imprimante ».
+   Safari affiche « Cette connexion n'est pas privée » : **Afficher les détails** → **visiter ce site
+   web** → confirmer (si une fenêtre demande un identifiant : **Annuler**). Reviens dans l'app.
+4. La pastille « Imprimante » est verte : c'est prêt. Sinon : Réglages → Impression → Dépannage.
+
+La suite de ce guide concerne la **passerelle** (réglage « Passerelle », imprimante CSI GIANT-100).
+
 ## Le matin (2 minutes)
 
 ### 1. Sur l'ordinateur de caisse

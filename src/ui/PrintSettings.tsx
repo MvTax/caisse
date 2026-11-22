@@ -5,9 +5,9 @@ import { renderPreview } from '../printing/escpos';
 import {
   canPrint,
   checkHealth,
+  printerSettingsChanged,
   printerStatus,
   printTestTicket,
-  servingMode,
 } from '../printing/printService';
 import { testTicket } from '../printing/ticket';
 import type { Settings } from '../storage/settings';
@@ -15,6 +15,12 @@ import { copyText } from './copy';
 
 function set<K extends keyof Settings>(key: K, value: Settings[K]) {
   update((d) => ({ ...d, settings: { ...d.settings, [key]: value } }));
+}
+
+/** Réglage qui change l'imprimante visée : on revérifie aussitôt son état. */
+function setPrinter<K extends keyof Settings>(key: K, value: Settings[K]) {
+  set(key, value);
+  printerSettingsChanged();
 }
 
 export function Toggle(props: {
@@ -105,6 +111,19 @@ const toPort = (v: string) => {
   return Number.isInteger(n) && n >= 1 && n <= 65535 ? n : null;
 };
 
+function EpsonStatusRow() {
+  const s = printerStatus.value;
+  return (
+    <div class="ios-row" data-testid="printer-status">
+      <span class="ios-row-text">
+        Imprimante Epson (Wi-Fi)
+        <small>{s.state === 'ok' ? 'OK' : s.message}</small>
+      </span>
+      <span aria-hidden="true">{s.state === 'ok' ? '🟢' : s.state === 'warn' ? '🟠' : '⚪️'}</span>
+    </div>
+  );
+}
+
 function StatusRows() {
   const s = printerStatus.value;
   const h = s.health;
@@ -145,6 +164,7 @@ function StatusRows() {
 
 export function PrintSettings() {
   const st = data.value.settings;
+  const epson = st.printerMode === 'epson';
   const [busy, setBusy] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
@@ -159,7 +179,52 @@ export function PrintSettings() {
   return (
     <>
       <h2 class="ios-group-title">Impression</h2>
-      {servingMode === 'https' && (
+      <div class="ios-group">
+        <Choice
+          label="Imprimante"
+          value={st.printerMode}
+          options={[
+            ['epson', 'Epson Wi-Fi'],
+            ['bridge', 'Passerelle'],
+          ]}
+          onChange={(v) => setPrinter('printerMode', v)}
+        />
+        <p class="ios-note">
+          {epson
+            ? 'Epson TM-m30II : l’iPhone imprime directement en Wi-Fi, sans rien lancer sur la caisse.'
+            : 'Passerelle : la fenêtre MA+ Bridge doit être ouverte sur la caisse (imprimante CSI GIANT-100).'}
+        </p>
+      </div>
+      {epson && (
+        <div class="ios-group">
+          <TextRow
+            label="IP de l’Epson"
+            value={st.epsonIp}
+            onCommit={(v) => isIp(v) && (setPrinter('epsonIp', v), true)}
+          />
+          <a
+            class="ios-row ios-button"
+            href={`https://${st.epsonIp}/`}
+            target="_blank"
+            rel="noopener"
+            data-testid="epson-open"
+          >
+            Ouvrir la page de l’imprimante (1ʳᵉ fois)
+          </a>
+          <ol class="ios-steps">
+            <li>
+              La 1ʳᵉ fois sur un iPhone : touche « Ouvrir la page de l’imprimante ». Safari affiche
+              « Cette connexion n’est pas privée » : <b>Afficher les détails</b> →{' '}
+              <b>visiter ce site web</b> → confirmer. Si une fenêtre demande un identifiant, touche{' '}
+              <b>Annuler</b>.
+            </li>
+            <li>
+              Reviens dans l’app et touche « Vérifier la connexion » : la pastille passe au vert.
+            </li>
+          </ol>
+        </div>
+      )}
+      {!canPrint() && (
         <div class="ios-group">
           <div class="ios-row">
             <span class="ios-row-text">
@@ -177,7 +242,7 @@ export function PrintSettings() {
       )}
       {canPrint() && (
         <div class="ios-group">
-          <StatusRows />
+          {epson ? <EpsonStatusRow /> : <StatusRows />}
           <button
             type="button"
             class="ios-row ios-button"
@@ -261,121 +326,165 @@ export function PrintSettings() {
         )}
       </div>
 
-      <h2 class="ios-group-title">Adresses réseau</h2>
-      <div class="ios-group">
-        <TextRow
-          label="IP de l’imprimante"
-          value={st.printerIp}
-          onCommit={(v) => isIp(v) && (set('printerIp', v), true)}
-        />
-        <TextRow
-          label="Port de l’imprimante"
-          inputMode="numeric"
-          value={String(st.printerPort)}
-          onCommit={(v) => {
-            const p = toPort(v);
-            return p !== null && (set('printerPort', p), true);
-          }}
-        />
-        <TextRow
-          label="IP de la caisse"
-          value={st.bridgeHost}
-          onCommit={(v) => isIp(v) && (set('bridgeHost', v), true)}
-        />
-        <TextRow
-          label="Port de la passerelle"
-          inputMode="numeric"
-          value={String(st.bridgePort)}
-          onCommit={(v) => {
-            const p = toPort(v);
-            return p !== null && (set('bridgePort', p), true);
-          }}
-        />
-        <TextRow
-          label="Jeton (optionnel)"
-          inputMode="text"
-          placeholder="aucun"
-          value={st.token}
-          onCommit={(v) => (set('token', v), true)}
-        />
-      </div>
+      {!epson && (
+        <>
+          <h2 class="ios-group-title">Adresses réseau</h2>
+          <div class="ios-group">
+            <TextRow
+              label="IP de l’imprimante"
+              value={st.printerIp}
+              onCommit={(v) => isIp(v) && (set('printerIp', v), true)}
+            />
+            <TextRow
+              label="Port de l’imprimante"
+              inputMode="numeric"
+              value={String(st.printerPort)}
+              onCommit={(v) => {
+                const p = toPort(v);
+                return p !== null && (set('printerPort', p), true);
+              }}
+            />
+            <TextRow
+              label="IP de la caisse"
+              value={st.bridgeHost}
+              onCommit={(v) => isIp(v) && (set('bridgeHost', v), true)}
+            />
+            <TextRow
+              label="Port de la passerelle"
+              inputMode="numeric"
+              value={String(st.bridgePort)}
+              onCommit={(v) => {
+                const p = toPort(v);
+                return p !== null && (set('bridgePort', p), true);
+              }}
+            />
+            <TextRow
+              label="Jeton (optionnel)"
+              inputMode="text"
+              placeholder="aucun"
+              value={st.token}
+              onCommit={(v) => (set('token', v), true)}
+            />
+          </div>
 
-      <h2 class="ios-group-title">Démarrer le service (chaque matin)</h2>
-      <div class="ios-group">
-        <ol class="ios-steps">
-          <li>
-            Sur la caisse : touche <b>Windows</b>, tape <code>cmd</code>, puis <b>clic droit</b> sur
-            « Invite de commandes » → <b>Exécuter en tant qu’administrateur</b>.
-          </li>
-          <li>Colle la ligne ci-dessous, puis touche Entrée.</li>
-          <li>
-            La fenêtre affiche une adresse (ex. <code>http://192.168.1.122:8080</code>) : ouvre-la
-            dans Safari sur l’iPhone. La 1ʳᵉ fois : Partager → <b>Sur l’écran d’accueil</b>.
-          </li>
-          <li>
-            Le soir : <b>Ctrl+C</b> dans la fenêtre noire, puis la fermer.
-          </li>
-        </ol>
-        <pre class="code-block" data-testid="launch-command">
-          {LAUNCH_COMMAND}
-        </pre>
-        <button
-          type="button"
-          class="ios-row ios-button"
-          onClick={async () =>
-            showToast(
-              (await copyText(LAUNCH_COMMAND))
-                ? 'Commande copiée'
-                : 'Copie impossible : sélectionne le texte',
-              'info',
-            )
-          }
-        >
-          Copier la commande
-        </button>
-        <p class="ios-note">
-          Astuce : sur la caisse, ouvre <b>mvtax.github.io/caisse</b> dans le navigateur → Réglages
-          → Copier. Ou tape la ligne une fois dans <b>Windows + R</b> : Windows s’en souviendra ;
-          les jours suivants, choisis-la dans la liste puis <b>Ctrl+Maj+Entrée</b> (administrateur).
-        </p>
-      </div>
+          <h2 class="ios-group-title">Démarrer le service (chaque matin)</h2>
+          <div class="ios-group">
+            <ol class="ios-steps">
+              <li>
+                Sur la caisse : touche <b>Windows</b>, tape <code>cmd</code>, puis <b>clic droit</b>{' '}
+                sur « Invite de commandes » → <b>Exécuter en tant qu’administrateur</b>.
+              </li>
+              <li>Colle la ligne ci-dessous, puis touche Entrée.</li>
+              <li>
+                La fenêtre affiche une adresse (ex. <code>http://192.168.1.122:8080</code>) :
+                ouvre-la dans Safari sur l’iPhone. La 1ʳᵉ fois : Partager →{' '}
+                <b>Sur l’écran d’accueil</b>.
+              </li>
+              <li>
+                Le soir : <b>Ctrl+C</b> dans la fenêtre noire, puis la fermer.
+              </li>
+            </ol>
+            <pre class="code-block" data-testid="launch-command">
+              {LAUNCH_COMMAND}
+            </pre>
+            <button
+              type="button"
+              class="ios-row ios-button"
+              onClick={async () =>
+                showToast(
+                  (await copyText(LAUNCH_COMMAND))
+                    ? 'Commande copiée'
+                    : 'Copie impossible : sélectionne le texte',
+                  'info',
+                )
+              }
+            >
+              Copier la commande
+            </button>
+            <p class="ios-note">
+              Astuce : sur la caisse, ouvre <b>mvtax.github.io/caisse</b> dans le navigateur →
+              Réglages → Copier. Ou tape la ligne une fois dans <b>Windows + R</b> : Windows s’en
+              souviendra ; les jours suivants, choisis-la dans la liste puis <b>Ctrl+Maj+Entrée</b>{' '}
+              (administrateur).
+            </p>
+          </div>
+        </>
+      )}
 
       <h2 class="ios-group-title">Dépannage</h2>
       <div class="ios-group help">
-        <details>
-          <summary>L’app ne s’ouvre pas à l’adresse de la caisse</summary>
-          <ul>
-            <li>La fenêtre noire MA+ Bridge est-elle ouverte sur la caisse ?</li>
-            <li>
-              L’iPhone est-il sur le Wi-Fi de la boutique ? Réglages → Wi-Fi → (i) : l’adresse IP
-              doit commencer par <code>192.168.1.</code> (pas le Wi-Fi invités du centre
-              commercial).
-            </li>
-            <li>
-              L’adresse de la caisse a pu changer : dans cmd, tape <code>ipconfig</code> et regarde
-              « Adresse IPv4 ». La fenêtre MA+ Bridge l’affiche aussi.
-            </li>
-          </ul>
-        </details>
-        <details>
-          <summary>Pastille orange : imprimante injoignable</summary>
-          <ul>
-            <li>
-              Imprimante allumée ? Câble réseau branché derrière ? Capot fermé, papier présent ?
-            </li>
-            <li>
-              Sur la caisse : <code>ping 192.168.1.200</code> doit répondre.
-            </li>
-            <li>
-              Retrouver son adresse : <code>arp -a | findstr 00-13-62</code>, ou ticket d’autotest
-              (éteindre, maintenir FEED, rallumer).
-            </li>
-            <li>
-              Test du port :{' '}
-              <code>powershell -c "Test-NetConnection 192.168.1.200 -Port 9100"</code>
-            </li>
-          </ul>
-        </details>
+        {epson && (
+          <details>
+            <summary>Epson : « Imprimante Epson injoignable »</summary>
+            <ul>
+              <li>
+                L’iPhone est-il sur le Wi-Fi <b>Mangos</b> ? Réglages → Wi-Fi → (i) : l’adresse IP
+                doit commencer par <code>192.168.1.</code>
+              </li>
+              <li>
+                1ʳᵉ fois sur cet iPhone : touche « Ouvrir la page de l’imprimante » et accepte
+                l’avertissement de Safari (voir plus haut).
+              </li>
+              <li>
+                L’adresse a pu changer : éteins l’Epson, maintiens le bouton d’avance papier en la
+                rallumant, relâche : la page d’état indique « IP Address ».
+              </li>
+              <li>Voyant réseau (icône bleue de prises) éteint : vérifie le câble réseau.</li>
+            </ul>
+          </details>
+        )}
+        {epson && (
+          <details>
+            <summary>Epson : capot, papier, ticket refusé</summary>
+            <ul>
+              <li>
+                Le message indique la cause (capot ouvert, plus de papier…). Corrige puis Réessayer.
+              </li>
+              <li>
+                Rien ne sort alors que l’app dit « imprimé » : imprime le « Ticket test caractères »
+                et envoie une photo.
+              </li>
+            </ul>
+          </details>
+        )}
+        {!epson && (
+          <details>
+            <summary>L’app ne s’ouvre pas à l’adresse de la caisse</summary>
+            <ul>
+              <li>La fenêtre noire MA+ Bridge est-elle ouverte sur la caisse ?</li>
+              <li>
+                L’iPhone est-il sur le Wi-Fi de la boutique ? Réglages → Wi-Fi → (i) : l’adresse IP
+                doit commencer par <code>192.168.1.</code> (pas le Wi-Fi invités du centre
+                commercial).
+              </li>
+              <li>
+                L’adresse de la caisse a pu changer : dans cmd, tape <code>ipconfig</code> et
+                regarde « Adresse IPv4 ». La fenêtre MA+ Bridge l’affiche aussi.
+              </li>
+            </ul>
+          </details>
+        )}
+        {!epson && (
+          <details>
+            <summary>Pastille orange : imprimante injoignable</summary>
+            <ul>
+              <li>
+                Imprimante allumée ? Câble réseau branché derrière ? Capot fermé, papier présent ?
+              </li>
+              <li>
+                Sur la caisse : <code>ping 192.168.1.200</code> doit répondre.
+              </li>
+              <li>
+                Retrouver son adresse : <code>arp -a | findstr 00-13-62</code>, ou ticket d’autotest
+                (éteindre, maintenir FEED, rallumer).
+              </li>
+              <li>
+                Test du port :{' '}
+                <code>powershell -c "Test-NetConnection 192.168.1.200 -Port 9100"</code>
+              </li>
+            </ul>
+          </details>
+        )}
         <details>
           <summary>Caractères bizarres sur le ticket</summary>
           <ul>

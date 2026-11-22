@@ -5,9 +5,10 @@
 Application de **prise de commande** sur iPhone (outil de préparation, **pas** un logiciel de caisse
 fiscal) avec impression des tickets sur l'imprimante thermique de la boutique.
 
-- Version en ligne (démo, sans impression) : https://mvtax.github.io/caisse/
-- En boutique : l'app est ouverte depuis l'adresse affichée par la passerelle sur la caisse
-  (`http://192.168.1.122:8080`) — **[guide pas à pas](docs/GUIDE_BOUTIQUE.md)**,
+- App : https://mvtax.github.io/caisse/ — par défaut elle imprime **directement sur l'Epson
+  TM-m30II en Wi-Fi** (192.168.1.103), sans rien lancer sur la caisse (voir `CLAUDE.md` §4.0).
+- Avec la CSI GIANT-100 (réglage « Passerelle ») : l'app est ouverte depuis l'adresse affichée par
+  la passerelle sur la caisse (`http://192.168.1.122:8080`) — **[guide pas à pas](docs/GUIDE_BOUTIQUE.md)**,
   [dépannage](docs/DEPANNAGE.md).
 - Testeur d'impression (page autonome, diagnostic de l'imprimante) : https://mvtax.github.io/caisse/testeur/
   — pour tester depuis l'iPhone, lancer la passerelle avec `-AppUrl 'https://mvtax.github.io/caisse/testeur/index.html'`

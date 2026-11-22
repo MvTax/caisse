@@ -94,6 +94,27 @@ Si l'app est servie en **HTTPS** (GitHub Pages), Safari **bloque** toute requêt
 
 ## 4. Matériel et réseau (données réelles relevées en boutique)
 
+### 4.0 MISE À JOUR 22/11/2026 — Epson TM-m30II : impression directe depuis l'iPhone (vérifiée)
+La boutique a aussi une **Epson TM-m30II** (page d'état relevée en boutique) :
+- IP **192.168.1.103** (Ethernet, MAC 38-1A-52-9E-66-96), firmware 02.14A ESC/POS, réseau 02.08.
+- Bluetooth : `TM-m30II_085261`, passkey 0000 (non utilisé par l'app).
+- Elle embarque le service web **ePOS-Print** en HTTPS : `https://192.168.1.103/cgi-bin/epos/service.cgi?devid=local_printer`.
+
+**Vérifié depuis l'iPhone de l'utilisateur (Safari, iOS 18.7)**, page `https://mvtax.github.io/caisse/testeur/`,
+rapport v2026-11-22.6 : la page HTTPS peut appeler l'imprimante et **lire sa réponse** (CORS OK,
+`success="true" status="251658262"`), y compris en requête simple `text/plain` (sans preflight) ; un
+ticket envoyé ainsi **est bien sorti**. Prérequis : la 1ʳᵉ fois sur l'iPhone, ouvrir
+`https://192.168.1.103` et accepter l'avertissement de certificat (une fenêtre d'identifiant peut
+apparaître : Annuler).
+
+→ Choix retenu (demande de l'utilisateur) : l'app imprime **par défaut sur l'Epson en Wi-Fi direct**
+(`src/printing/eposClient.ts`, réglage `printerMode: 'epson'`), sans passerelle, même depuis
+GitHub Pages. Les octets ESC/POS de `ticket.ts` sont envoyés tels quels dans `<command>` (hex) ;
+variante `<text>` automatique si l'imprimante répond `SchemaError`. La passerelle + CSI GIANT-100
+restent disponibles (réglage « Passerelle »). À valider sur papier : ticket test caractères
+(accents, €) via `<command>`.
+
+
 ### 4.1 Imprimante
 Ticket d'autotest imprimé par l'imprimante elle-même :
 
@@ -666,7 +687,7 @@ Demande à l'utilisateur des **photos** des tickets et de la fenêtre console en
 ## 18. Ce qu'il ne faut PAS faire
 
 - ❌ Scanner le réseau depuis le navigateur, « détecter » l'imprimante par timing, ou afficher une fausse liste d'appareils.
-- ❌ Promettre l'impression directe iPhone → imprimante sans intermédiaire.
+- ❌ Promettre l'impression directe iPhone → imprimante sans intermédiaire **pour la CSI GIANT-100** (socket brute 9100). Exception vérifiée : l'Epson TM-m30II via ePOS-Print HTTPS (§4.0).
 - ❌ Écrire une passerelle en une ligne illisible avec échappements imbriqués.
 - ❌ Installer quoi que ce soit de permanent sur la caisse (service, tâche planifiée, logiciel, règle pare-feu laissée en place, fichier sur le disque) sans accord explicite.
 - ❌ Utiliser des flottants pour l'argent.

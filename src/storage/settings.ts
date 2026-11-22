@@ -1,4 +1,13 @@
+export type PrinterMode = 'epson' | 'bridge';
+
 export interface Settings {
+  /**
+   * 'epson'  : Epson TM-m30II jointe directement par Safari en Wi-Fi (ePOS-Print, HTTPS).
+   * 'bridge' : passerelle ma-bridge.ps1 sur la caisse, qui relaie vers la CSI GIANT-100.
+   */
+  printerMode: PrinterMode;
+  /** IP de l'Epson TM-m30II (page d'état de l'imprimante). */
+  epsonIp: string;
   /** Adresse de la passerelle sur la caisse (utilisée hors passerelle, en dev). */
   bridgeHost: string;
   bridgePort: number;
@@ -19,6 +28,8 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
+  printerMode: 'epson',
+  epsonIp: '192.168.1.103',
   bridgeHost: '192.168.1.122',
   bridgePort: 8080,
   printerIp: '192.168.1.200',

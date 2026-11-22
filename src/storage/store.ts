@@ -61,6 +61,10 @@ function cleanSettings(s: Settings & { bipperMax?: unknown }): Settings {
   if (!Array.isArray(rest.bippers) || !rest.bippers.every((b) => typeof b === 'string')) {
     rest.bippers = [...DEFAULT_SETTINGS.bippers];
   }
+  if (rest.printerMode !== 'epson' && rest.printerMode !== 'bridge') {
+    rest.printerMode = DEFAULT_SETTINGS.printerMode;
+  }
+  if (typeof rest.epsonIp !== 'string' || !rest.epsonIp) rest.epsonIp = DEFAULT_SETTINGS.epsonIp;
   return rest;
 }
 

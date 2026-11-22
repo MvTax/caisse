@@ -9,7 +9,27 @@ const cors = { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/
 
 export type Mode = 'ok' | 'printer-down' | 'hang';
 
+/**
+ * Ces tests visent la passerelle : on choisit « Passerelle » dans les réglages avant le
+ * chargement de l'app (par défaut, l'app imprime sur l'Epson en Wi-Fi). Les données déjà
+ * enregistrées (commandes…) sont conservées d'un rechargement à l'autre.
+ */
+export async function useBridgeMode(page: Page) {
+  await page.addInitScript(() => {
+    const key = 'ma_commander';
+    let d: { settings?: Record<string, unknown> } = {};
+    try {
+      d = JSON.parse(localStorage.getItem(key) ?? '{}') as typeof d;
+    } catch {
+      d = {};
+    }
+    d.settings = { ...(d.settings ?? {}), printerMode: 'bridge' };
+    localStorage.setItem(key, JSON.stringify(d));
+  });
+}
+
 export async function mockBridge(page: Page, mode: () => Mode) {
+  await useBridgeMode(page);
   const prints: { data: string; jobId: string; copies: number; label?: string }[] = [];
   await page.route(`${BRIDGE}/api/**`, async (route: Route) => {
     const url = new URL(route.request().url());

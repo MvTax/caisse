@@ -1,7 +1,12 @@
 /**
- * Service d'impression côté app : construit les octets (ticket.ts), les envoie à la
- * passerelle (bridgeClient.ts), journalise le résultat sur la commande et tient à jour
- * la pastille d'état. Une commande n'est JAMAIS perdue si l'impression échoue.
+ * Service d'impression côté app : construit les octets (ticket.ts), les envoie à
+ * l'imprimante, journalise le résultat sur la commande et tient à jour la pastille d'état.
+ * Une commande n'est JAMAIS perdue si l'impression échoue.
+ *
+ * Deux acheminements, selon le réglage « Imprimante » :
+ *  - 'epson'  : Epson TM-m30II jointe directement par Safari en Wi-Fi (eposClient.ts),
+ *               possible même depuis GitHub Pages ;
+ *  - 'bridge' : passerelle sur la caisse (bridgeClient.ts) → CSI GIANT-100.
  */
 import { signal } from '@preact/signals';
 import { detectServingMode } from '../app/env';
@@ -18,6 +23,7 @@ import {
   type PrintResponse,
 } from './bridgeClient';
 import type { EscPos } from './escpos';
+import { eposPrint, eposStatus } from './eposClient';
 import { charsetTicket, orderTicket, testTicket } from './ticket';
 
 export const servingMode = detectServingMode(location);
@@ -31,17 +37,22 @@ export interface PrinterStatus {
   checkedAt?: Date;
 }
 
-export const printerStatus = signal<PrinterStatus>(
-  servingMode === 'https'
-    ? { state: 'https', message: 'Version démo : impression impossible depuis cette adresse.' }
-    : { state: 'unknown', message: 'État de l’imprimante inconnu.' },
-);
+const usesEpson = () => data.value.settings.printerMode === 'epson';
+
+/** Impression possible ? Toujours avec l'Epson ; la passerelle, elle, est bloquée en https. */
+export const canPrint = () => usesEpson() || servingMode !== 'https';
+
+function idleStatus(): PrinterStatus {
+  return canPrint()
+    ? { state: 'unknown', message: 'État de l’imprimante inconnu.' }
+    : { state: 'https', message: 'Version démo : impression impossible depuis cette adresse.' };
+}
+
+export const printerStatus = signal<PrinterStatus>(idleStatus());
 
 /** Échec d'impression à proposer de réessayer (feuille « Réessayer / Imprimer plus tard »). */
 export const printFailure = signal<{ orderId: string; message: string } | null>(null);
 export const printingIds = signal<ReadonlySet<string>>(new Set());
-
-export const canPrint = () => servingMode !== 'https';
 
 function config(): BridgeConfig {
   const s = data.value.settings;
@@ -59,11 +70,29 @@ function statusFromError(e: BridgeError): PrinterStatus {
   return { state: 'off', message: e.message, checkedAt: new Date() };
 }
 
+async function checkEpson(): Promise<PrinterStatus> {
+  const ip = data.value.settings.epsonIp;
+  const r = await eposStatus(ip);
+  printerStatus.value = r.ok
+    ? r.value.problems.length
+      ? {
+          state: 'warn',
+          message: `Imprimante Epson : ${r.value.problems.join(', ')}`,
+          checkedAt: new Date(),
+        }
+      : { state: 'ok', message: `Imprimante Epson OK (${ip})`, checkedAt: new Date() }
+    : r.error.kind === 'printer'
+      ? { state: 'warn', message: r.error.message, checkedAt: new Date() }
+      : { state: 'off', message: r.error.message, checkedAt: new Date() };
+  return printerStatus.value;
+}
+
 export async function checkHealth(): Promise<PrinterStatus> {
-  if (!canPrint()) return printerStatus.value;
-  if (printerStatus.value.state === 'unknown') {
+  if (!canPrint()) return (printerStatus.value = idleStatus());
+  if (printerStatus.value.state === 'unknown' || printerStatus.value.state === 'https') {
     printerStatus.value = { state: 'checking', message: 'Vérification…' };
   }
+  if (usesEpson()) return checkEpson();
   const r = await getHealth(config(), target());
   printerStatus.value = r.ok
     ? r.value.printer.reachable
@@ -86,14 +115,20 @@ export async function checkHealth(): Promise<PrinterStatus> {
 let pollTimer: ReturnType<typeof setInterval> | undefined;
 /** Interroge la passerelle toutes les 15 s quand l'app est au premier plan. */
 export function startHealthPolling(): void {
-  if (!canPrint() || pollTimer) return;
+  if (pollTimer) return;
   void checkHealth();
   pollTimer = setInterval(() => {
-    if (document.visibilityState === 'visible') void checkHealth();
+    if (document.visibilityState === 'visible' && canPrint()) void checkHealth();
   }, 15_000);
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') void checkHealth();
+    if (document.visibilityState === 'visible' && canPrint()) void checkHealth();
   });
+}
+
+/** À appeler quand le choix d'imprimante ou son adresse change dans les réglages. */
+export function printerSettingsChanged(): void {
+  printerStatus.value = idleStatus();
+  if (canPrint()) void checkHealth();
 }
 
 async function send(
@@ -102,7 +137,13 @@ async function send(
   label: string,
   copies: number,
 ): Promise<Result<PrintResponse>> {
-  const r = await sendPrint(config(), ticket.toBytes(), { jobId, copies, target: target(), label });
+  const r = usesEpson()
+    ? await eposPrint(
+        data.value.settings.epsonIp,
+        { bytes: ticket.toBytes(), preview: ticket.toPreview() },
+        copies,
+      )
+    : await sendPrint(config(), ticket.toBytes(), { jobId, copies, target: target(), label });
   if (r.ok) {
     const prev = printerStatus.value;
     printerStatus.value = {
@@ -189,9 +230,15 @@ export async function printPending(): Promise<{ ok: number; failed: number }> {
 export async function printTestTicket(kind: 'test' | 'charset'): Promise<Result<PrintResponse>> {
   const s = data.value.settings;
   const at = new Date();
+  const epson = s.printerMode === 'epson';
   const ticket =
     kind === 'test'
-      ? testTicket({ columns: s.columns, printerIp: s.printerIp, printerPort: s.printerPort, at })
+      ? testTicket({
+          columns: s.columns,
+          printerIp: epson ? s.epsonIp : s.printerIp,
+          printerPort: epson ? 443 : s.printerPort,
+          at,
+        })
       : charsetTicket({ columns: s.columns, at });
   return send(
     ticket,

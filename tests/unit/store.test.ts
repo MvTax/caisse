@@ -138,6 +138,19 @@ describe('store', () => {
     expect(st.bippers).toHaveLength(11);
   });
 
+  it('imprimante : Epson Wi-Fi par défaut, valeur invalide corrigée, passerelle conservée', () => {
+    expect(DEFAULT_SETTINGS.printerMode).toBe('epson');
+    expect(DEFAULT_SETTINGS.epsonIp).toBe('192.168.1.103');
+    const s = new MemStorage();
+    s.setItem(STORAGE_KEY, JSON.stringify({ settings: { printerMode: 'fax', epsonIp: '' } }));
+    expect(loadData(s).data.settings).toMatchObject({
+      printerMode: 'epson',
+      epsonIp: '192.168.1.103',
+    });
+    s.setItem(STORAGE_KEY, JSON.stringify({ settings: { printerMode: 'bridge' } }));
+    expect(loadData(s).data.settings.printerMode).toBe('bridge');
+  });
+
   it('JSON corrompu → pas de plantage', () => {
     const s = new MemStorage();
     s.setItem(STORAGE_KEY, '{oups');
