@@ -35,7 +35,7 @@ const TRANSLIT: Record<string, string> = {
 };
 
 /** Pictogrammes (emojis, symboles) : supprimés. */
-const PICTO = /[\p{Extended_Pictographic}\u{FE0F}\u{200D}\u{20E3}\u{1F3FB}-\u{1F3FF}]/gu;
+const PICTO = /\p{Extended_Pictographic}|\u{FE0F}|\u{200D}|\u{20E3}|[\u{1F3FB}-\u{1F3FF}]/gu;
 
 /** Texte prêt à imprimer : translittéré, sans emoji, sans caractère de contrôle. */
 export function sanitize(text: string): string {
@@ -44,6 +44,7 @@ export function sanitize(text: string): string {
     if (TRANSLIT[ch] !== undefined) out += TRANSLIT[ch];
     else out += ch;
   }
+  // eslint-disable-next-line no-control-regex -- on retire justement les caractères de contrôle
   return out.replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, '');
 }
 

@@ -7,6 +7,7 @@ for (const file of process.argv.slice(2)) {
   readFileSync(file, 'utf8')
     .split('\n')
     .forEach((line, i) => {
+      // eslint-disable-next-line no-control-regex -- recherche volontaire hors ASCII
       const m = /[^\x00-\x7f]/.exec(line);
       if (m) {
         bad++;
