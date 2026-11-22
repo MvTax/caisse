@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mangos · Pour toujours plus de fraîcheur</title>
+<meta name="description" content="Mangos, le bar à smoothies frais inspiré du Juice Bar anglo-saxon. Smoothies, bubble tea, milkshakes, jus frais, crêpes, gaufres et bien plus dans les centres commerciaux.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --mango:       #FF8C2A;
+    --mango-deep:  #E85D04;
+    --pulp:        #FFB347;
+    --skin:        #FFE5B4;
+    --leaf:        #2D5016;
+    --leaf-light:  #4A7C2C;
+    --cream:       #FFF8E7;
+    --milk:        #FAF3E0;
+    --ink:         #1A1A1A;
+    --berry:       #C8102E;
+    --plum:        #6B2C5F;
+    --aqua:        #00A896;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     GRAIN OVERLAY — donne du grain partout
+     ═══════════════════════════════════════════════════════════════ */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    mix-blend-mode: multiply;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     NAVIGATION
+     ═══════════════════════════════════════════════════════════════ */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 50;
+    padding: 22px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(255, 248, 231, 0.65);
+    border-bottom: 1px solid rgba(232, 93, 4, 0.08);
+    transition: padding 0.3s ease;
+  }
+
+  nav.scrolled { padding: 14px 40px; }
+
+  .logo {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 900;
+    font-style: italic;
+    color: var(--mango-deep);
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .logo-dot {
+    width: 10px; height: 10px;
+    background: var(--mango);
+    border-radius: 50%;
+    display: inline-block;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.25); opacity: 0.7; }
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 36px;
+    list-style: none;
+  }
+  .nav-links a {
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    position: relative;
+    transition: color 0.2s;
+  }
+  .nav-links a::after {
+    content: '';
+    position: absolute;
+    left: 0; bottom: -6px;
+    width: 0; height: 2px;
+    background: var(--mango-deep);
+    transition: width 0.3s ease;
+  }
+  .nav-links a:hover { color: var(--mango-deep); }
+  .nav-links a:hover::after { width: 100%; }
+
+  .nav-cta {
+    background: var(--ink);
+    color: var(--cream);
+    padding: 10px 22px;
+    border-radius: 100px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    transition: transform 0.2s, background 0.2s;
+  }
+  .nav-cta:hover { background: var(--mango-deep); transform: translateY(-1px); }
+
+  .menu-toggle {
+    display: none;
+    background: none; border: none; cursor: pointer;
+    width: 32px; height: 32px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+  }
+  .menu-toggle span {
+    display: block;
+    width: 24px; height: 2px;
+    background: var(--ink);
+    transition: all 0.3s;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     HERO
+     ═══════════════════════════════════════════════════════════════ */
+  .hero {
+    min-height: 100vh;
+    position: relative;
+    padding: 140px 40px 80px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    background: linear-gradient(155deg, #FFE5B4 0%, #FFB347 35%, #FF8C2A 75%, #E85D04 100%);
+  }
+
+  /* Cercles décoratifs flottants */
+  .hero-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.6;
+    animation: float 14s ease-in-out infinite;
+  }
+  .hero-orb-1 { width: 500px; height: 500px; background: #FFF5C8; top: -150px; right: -120px; }
+  .hero-orb-2 { width: 350px; height: 350px; background: #FF6B6B; bottom: -100px; left: -80px; animation-delay: -7s; }
+  .hero-orb-3 { width: 280px; height: 280px; background: #FFFFE0; top: 40%; right: 30%; animation-delay: -3s; opacity: 0.3; }
+
+  @keyframes float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -40px) scale(1.05); }
+    66% { transform: translate(-20px, 30px) scale(0.95); }
+  }
+
+  .hero-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 60px;
+    align-items: center;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(10px);
+    border-radius: 100px;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--leaf);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    animation: fadeUp 0.8s ease-out;
+  }
+  .eyebrow-dot {
+    width: 6px; height: 6px;
+    background: var(--mango-deep);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  h1.hero-title {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(56px, 9vw, 132px);
+    font-weight: 300;
+    line-height: 0.92;
+    letter-spacing: -3px;
+    color: #FFF;
+    margin-bottom: 32px;
+    animation: fadeUp 1s ease-out 0.1s backwards;
+    text-shadow: 0 4px 30px rgba(0,0,0,0.08);
+  }
+  h1.hero-title em {
+    font-style: italic;
+    font-weight: 900;
+    color: var(--cream);
+    display: inline-block;
+    transform: rotate(-2deg);
+    background: linear-gradient(180deg, #FFFFFF 0%, #FFE5B4 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero-tagline {
+    font-size: 19px;
+    line-height: 1.55;
+    color: rgba(45, 80, 22, 0.85);
+    max-width: 480px;
+    margin-bottom: 44px;
+    font-weight: 400;
+    animation: fadeUp 1s ease-out 0.3s backwards;
+  }
+
+  .hero-buttons {
+    display: flex;
+    gap: 16px;
+    animation: fadeUp 1s ease-out 0.5s backwards;
+    flex-wrap: wrap;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 18px 34px;
+    border-radius: 100px;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer;
+    border: none;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn-primary {
+    background: var(--ink);
+    color: var(--cream);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+  }
+  .btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 40px rgba(0,0,0,0.25);
+    background: var(--leaf);
+  }
+  .btn-ghost {
+    background: rgba(255, 255, 255, 0.4);
+    color: var(--leaf);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+  }
+  .btn-ghost:hover { background: rgba(255, 255, 255, 0.7); transform: translateY(-3px); }
+  .btn .arrow {
+    width: 14px; height: 14px;
+    transition: transform 0.3s;
+  }
+  .btn:hover .arrow { transform: translateX(4px); }
+
+  /* HERO IMAGE — illustration de smoothie SVG */
+  .hero-visual {
+    position: relative;
+    aspect-ratio: 1;
+    max-width: 540px;
+    margin-left: auto;
+    animation: fadeUp 1.2s ease-out 0.4s backwards;
+  }
+  .hero-cup {
+    width: 100%;
+    height: 100%;
+    animation: gentleSpin 25s linear infinite;
+  }
+  @keyframes gentleSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .hero-fruit {
+    position: absolute;
+    font-size: 60px;
+    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.15));
+  }
+  .hero-fruit.f1 { top: 8%;  left: 5%;  animation: bob 4s ease-in-out infinite; font-size: 80px; }
+  .hero-fruit.f2 { top: 12%; right: 5%; animation: bob 4s ease-in-out infinite -1s; font-size: 70px; }
+  .hero-fruit.f3 { bottom: 15%; left: 8%; animation: bob 4s ease-in-out infinite -2s; font-size: 65px; }
+  .hero-fruit.f4 { bottom: 5%; right: 10%; animation: bob 4s ease-in-out infinite -3s; font-size: 90px; }
+
+  @keyframes bob {
+    0%, 100% { transform: translateY(0) rotate(-5deg); }
+    50% { transform: translateY(-20px) rotate(8deg); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Marquee défilant en bas du hero */
+  .hero-marquee {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: var(--ink);
+    color: var(--cream);
+    padding: 18px 0;
+    overflow: hidden;
+    z-index: 3;
+    border-top: 3px solid var(--mango-deep);
+  }
+  .marquee-track {
+    display: flex;
+    gap: 50px;
+    animation: marquee 30s linear infinite;
+    white-space: nowrap;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 22px;
+    font-weight: 400;
+  }
+  .marquee-track span { display: inline-flex; align-items: center; gap: 50px; }
+  .marquee-star { color: var(--mango); font-size: 20px; }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     SECTION CONCEPT
+     ═══════════════════════════════════════════════════════════════ */
+  section { padding: 140px 40px; position: relative; }
+
+  .section-wrap {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .section-tag {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--mango-deep);
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    position: relative;
+    padding-left: 36px;
+  }
+  .section-tag::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 50%;
+    width: 24px; height: 2px;
+    background: var(--mango-deep);
+    transform: translateY(-50%);
+  }
+
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(40px, 6vw, 80px);
+    font-weight: 300;
+    line-height: 1;
+    letter-spacing: -2px;
+    margin-bottom: 24px;
+  }
+  .section-title em {
+    font-style: italic;
+    font-weight: 700;
+    color: var(--mango-deep);
+  }
+
+  /* CONCEPT GRID */
+  #concept { background: var(--cream); }
+
+  .concept-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 24px;
+    margin-top: 80px;
+  }
+
+  .concept-card {
+    background: white;
+    border-radius: 32px;
+    padding: 40px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(232, 93, 4, 0.08);
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.5s;
+  }
+  .concept-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 30px 60px -20px rgba(232, 93, 4, 0.2);
+  }
+  .concept-card.fresh   { grid-column: span 5; min-height: 380px; background: linear-gradient(135deg, #FFE5B4, #FFB347); color: var(--leaf); }
+  .concept-card.fast    { grid-column: span 4; min-height: 380px; background: var(--ink); color: var(--cream); }
+  .concept-card.healthy { grid-column: span 3; min-height: 380px; }
+  .concept-card.choice  { grid-column: span 7; min-height: 280px; background: linear-gradient(135deg, #FFF8E7, #FFE5B4); }
+  .concept-card.serve   { grid-column: span 5; min-height: 280px; background: var(--mango-deep); color: white; }
+
+  .concept-emoji {
+    font-size: 48px;
+    margin-bottom: 24px;
+    display: block;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.1));
+  }
+  .concept-card h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 32px;
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -1px;
+    margin-bottom: 14px;
+  }
+  .concept-card p {
+    font-size: 15px;
+    line-height: 1.6;
+    opacity: 0.85;
+  }
+  .concept-card .big-stat {
+    font-family: 'Fraunces', serif;
+    font-size: 110px;
+    font-weight: 300;
+    line-height: 0.9;
+    letter-spacing: -4px;
+    margin-bottom: 8px;
+  }
+  .concept-card .big-stat em {
+    font-style: italic;
+    font-weight: 900;
+    color: var(--mango);
+  }
+
+  /* Decoration */
+  .concept-card .deco-circle {
+    position: absolute;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    bottom: -50px; right: -50px;
+    opacity: 0.1;
+  }
+  .concept-card.fresh .deco-circle { background: var(--mango-deep); }
+  .concept-card.fast .deco-circle { background: var(--mango); }
+
+  /* ═══════════════════════════════════════════════════════════════
+     PRODUITS — Le coeur du site
+     ═══════════════════════════════════════════════════════════════ */
+  #produits {
+    background: linear-gradient(180deg, var(--cream) 0%, var(--milk) 100%);
+    position: relative;
+  }
+
+  .products-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 80px;
+    gap: 40px;
+  }
+  .products-header .right-text {
+    max-width: 380px;
+    font-size: 16px;
+    line-height: 1.7;
+    color: rgba(26, 26, 26, 0.7);
+  }
+
+  /* Pills filtre */
+  .category-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 60px;
+  }
+  .pill {
+    background: white;
+    color: var(--ink);
+    padding: 12px 22px;
+    border-radius: 100px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid rgba(0,0,0,0.08);
+    transition: all 0.25s;
+    font-family: inherit;
+  }
+  .pill:hover { border-color: var(--mango-deep); }
+  .pill.active {
+    background: var(--ink);
+    color: var(--cream);
+    border-color: var(--ink);
+  }
+
+  /* Grille de produits */
+  .products-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+  }
+
+  .product-card {
+    background: white;
+    border-radius: 28px;
+    overflow: hidden;
+    position: relative;
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.5s;
+    cursor: pointer;
+    border: 1px solid rgba(0,0,0,0.04);
+  }
+  .product-card:hover {
+    transform: translateY(-8px) rotate(-0.5deg);
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.15);
+  }
+
+  .product-visual {
+    height: 280px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .product-emoji {
+    font-size: 130px;
+    filter: drop-shadow(0 20px 40px rgba(0,0,0,0.2));
+    transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 2;
+  }
+  .product-card:hover .product-emoji { transform: scale(1.1) rotate(-8deg); }
+
+  .product-deco {
+    position: absolute;
+    font-size: 50px;
+    opacity: 0.4;
+  }
+  .product-deco.d1 { top: 12%; left: 12%; }
+  .product-deco.d2 { bottom: 14%; right: 14%; transform: rotate(20deg); }
+
+  .product-info {
+    padding: 28px 28px 32px;
+    background: white;
+  }
+  .product-cat {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--mango-deep);
+    margin-bottom: 8px;
+  }
+  .product-name {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    letter-spacing: -0.5px;
+  }
+  .product-desc {
+    font-size: 13px;
+    color: rgba(26, 26, 26, 0.6);
+    line-height: 1.5;
+    margin-bottom: 18px;
+    min-height: 40px;
+  }
+  .product-price {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-top: 18px;
+    border-top: 1px dashed rgba(0,0,0,0.1);
+  }
+  .price-amount {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .price-from {
+    font-size: 11px;
+    color: rgba(26, 26, 26, 0.5);
+    margin-right: 4px;
+  }
+
+  /* Couleurs spécifiques par catégorie */
+  .product-visual.smoothies { background: linear-gradient(135deg, #FFE5B4, #FF8C2A); }
+  .product-visual.bubble    { background: linear-gradient(135deg, #C8E6C9, #4A7C2C); }
+  .product-visual.milkshake { background: linear-gradient(135deg, #FFE0EF, #F48FB1); }
+  .product-visual.jus       { background: linear-gradient(135deg, #FFF59D, #FFB300); }
+  .product-visual.crepes    { background: linear-gradient(135deg, #D7CCC8, #8D6E63); }
+  .product-visual.glaces    { background: linear-gradient(135deg, #BBDEFB, #1E88E5); }
+  .product-visual.donuts    { background: linear-gradient(135deg, #F8BBD0, #AD1457); }
+  .product-visual.sandwich  { background: linear-gradient(135deg, #FFCCBC, #E64A19); }
+  .product-visual.softs     { background: linear-gradient(135deg, #B3E5FC, #0277BD); }
+
+  /* ═══════════════════════════════════════════════════════════════
+     STATS BANNER
+     ═══════════════════════════════════════════════════════════════ */
+  .stats-banner {
+    background: var(--ink);
+    color: var(--cream);
+    padding: 100px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stats-banner::before {
+    content: 'MANGOS';
+    position: absolute;
+    bottom: -60px;
+    left: -20px;
+    font-family: 'Fraunces', serif;
+    font-size: 280px;
+    font-style: italic;
+    font-weight: 900;
+    color: rgba(255, 140, 42, 0.04);
+    pointer-events: none;
+    line-height: 1;
+  }
+  .stats-grid {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 40px;
+    position: relative;
+    z-index: 2;
+  }
+  .stat-item .stat-num {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(60px, 7vw, 110px);
+    font-weight: 300;
+    line-height: 0.9;
+    letter-spacing: -3px;
+    color: var(--mango);
+    margin-bottom: 12px;
+  }
+  .stat-item .stat-num em {
+    font-style: italic;
+    font-weight: 900;
+  }
+  .stat-item .stat-label {
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(255, 248, 231, 0.6);
+    font-weight: 500;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     BOUTIQUES
+     ═══════════════════════════════════════════════════════════════ */
+  #boutiques { background: var(--cream); }
+
+  .shops-list {
+    margin-top: 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .shop-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 2fr 1fr auto;
+    gap: 30px;
+    align-items: center;
+    padding: 36px 0;
+    border-top: 1px solid rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: padding 0.4s ease;
+  }
+  .shop-row:last-child { border-bottom: 1px solid rgba(0,0,0,0.1); }
+  .shop-row:hover { padding-left: 20px; padding-right: 20px; background: rgba(255, 229, 180, 0.3); }
+
+  .shop-num {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-style: italic;
+    color: var(--mango-deep);
+    font-weight: 300;
+  }
+  .shop-name {
+    font-family: 'Fraunces', serif;
+    font-size: 32px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+  }
+  .shop-city {
+    font-size: 14px;
+    color: rgba(26, 26, 26, 0.6);
+    line-height: 1.5;
+  }
+  .shop-stat {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    color: var(--leaf);
+    font-style: italic;
+  }
+  .shop-stat .stat-sub {
+    display: block;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    color: rgba(26, 26, 26, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-style: normal;
+    margin-top: 2px;
+  }
+  .shop-arrow {
+    width: 50px; height: 50px;
+    border-radius: 50%;
+    background: var(--cream);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s, transform 0.3s;
+    border: 1px solid rgba(0,0,0,0.1);
+  }
+  .shop-row:hover .shop-arrow { background: var(--ink); transform: rotate(-45deg); }
+  .shop-row:hover .shop-arrow svg { stroke: var(--cream); }
+  .shop-arrow svg { transition: stroke 0.3s; }
+
+  /* ═══════════════════════════════════════════════════════════════
+     CTA AVANT FOOTER — Recrutement
+     ═══════════════════════════════════════════════════════════════ */
+  .join-section {
+    background: linear-gradient(155deg, var(--mango) 0%, var(--mango-deep) 100%);
+    padding: 140px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    color: white;
+  }
+  .join-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M100 30 C 130 30, 160 60, 160 100 C 160 140, 130 170, 100 170 C 70 170, 40 140, 40 100 C 40 60, 70 30, 100 30Z' fill='%23FFFFFF' opacity='0.05'/%3E%3C/svg%3E");
+    background-size: 400px;
+    opacity: 0.5;
+  }
+  .join-content {
+    position: relative;
+    z-index: 2;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .join-eyebrow {
+    color: rgba(255,255,255,0.85);
+    font-size: 13px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    font-weight: 600;
+  }
+  .join-title {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(48px, 7vw, 96px);
+    font-weight: 300;
+    line-height: 0.95;
+    letter-spacing: -2px;
+    margin-bottom: 28px;
+  }
+  .join-title em {
+    font-style: italic;
+    font-weight: 900;
+    color: var(--cream);
+  }
+  .join-text {
+    font-size: 19px;
+    line-height: 1.55;
+    opacity: 0.9;
+    margin-bottom: 42px;
+    max-width: 580px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     FOOTER
+     ═══════════════════════════════════════════════════════════════ */
+  footer {
+    background: var(--ink);
+    color: var(--cream);
+    padding: 100px 40px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .footer-main {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+    gap: 50px;
+    padding-bottom: 80px;
+    border-bottom: 1px solid rgba(255,248,231,0.1);
+  }
+
+  .footer-brand .logo {
+    color: var(--mango);
+    margin-bottom: 24px;
+  }
+  .footer-brand p {
+    font-size: 14px;
+    line-height: 1.7;
+    color: rgba(255, 248, 231, 0.6);
+    max-width: 320px;
+  }
+
+  .footer-col h4 {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--mango);
+    margin-bottom: 22px;
+  }
+  .footer-col a, .footer-col p {
+    display: block;
+    font-size: 14px;
+    color: rgba(255, 248, 231, 0.75);
+    text-decoration: none;
+    margin-bottom: 12px;
+    line-height: 1.6;
+    transition: color 0.2s;
+  }
+  .footer-col a:hover { color: var(--mango); }
+
+  .footer-bottom {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding-top: 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .footer-bottom p {
+    font-size: 12px;
+    color: rgba(255, 248, 231, 0.4);
+  }
+
+  .footer-giant {
+    position: absolute;
+    bottom: -180px;
+    right: -80px;
+    font-family: 'Fraunces', serif;
+    font-size: 480px;
+    font-weight: 900;
+    font-style: italic;
+    color: rgba(255, 140, 42, 0.04);
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     RESPONSIVE
+     ═══════════════════════════════════════════════════════════════ */
+  @media (max-width: 968px) {
+    nav { padding: 16px 20px; }
+    nav.scrolled { padding: 12px 20px; }
+    .nav-links, .nav-cta { display: none; }
+    .menu-toggle { display: flex; }
+    section { padding: 80px 20px; }
+    .hero { padding: 110px 20px 100px; }
+    .hero-content { grid-template-columns: 1fr; gap: 30px; }
+    .hero-visual { max-width: 320px; margin: 0 auto; }
+    .hero-fruit.f1, .hero-fruit.f2, .hero-fruit.f3, .hero-fruit.f4 { font-size: 50px !important; }
+
+    .concept-grid { grid-template-columns: 1fr; }
+    .concept-card { grid-column: span 1 !important; min-height: 280px !important; }
+
+    .products-header { flex-direction: column; align-items: flex-start; }
+    .products-grid { grid-template-columns: 1fr; gap: 20px; }
+
+    .stats-banner { padding: 70px 20px; }
+    .stats-banner::before { font-size: 140px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; gap: 30px; }
+
+    .shop-row {
+      grid-template-columns: 1fr;
+      gap: 8px;
+      padding: 28px 0;
+    }
+    .shop-num { font-size: 16px; }
+    .shop-name { font-size: 24px; }
+    .shop-arrow { display: none; }
+
+    .join-section { padding: 80px 20px; }
+    .footer-main { grid-template-columns: 1fr 1fr; gap: 40px 20px; }
+    .footer-giant { font-size: 200px; bottom: -80px; }
+    .footer-bottom { flex-direction: column; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     NAVIGATION
+     ═══════════════════════════════════════════════════════════════ -->
+<nav id="nav">
+  <a href="#" class="logo">
+    Mangos<span class="logo-dot"></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#concept">Concept</a></li>
+    <li><a href="#produits">Produits</a></li>
+    <li><a href="#boutiques">Boutiques</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+  <a href="#contact" class="nav-cta">Nous rejoindre</a>
+  <button class="menu-toggle" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     HERO
+     ═══════════════════════════════════════════════════════════════ -->
+<header class="hero">
+  <div class="hero-orb hero-orb-1"></div>
+  <div class="hero-orb hero-orb-2"></div>
+  <div class="hero-orb hero-orb-3"></div>
+
+  <div class="hero-content">
+    <div>
+      <div class="eyebrow">
+        <span class="eyebrow-dot"></span>
+        Juice Bar · Depuis 2009
+      </div>
+      <h1 class="hero-title">
+        Pour toujours plus de <em>fraîcheur.</em>
+      </h1>
+      <p class="hero-tagline">
+        Smoothies onctueux, bubble teas, milkshakes, jus pressés et bien plus.
+        Tous nos fruits sont sélectionnés, mixés et servis devant vous,
+        au cœur des plus grands centres commerciaux de France.
+      </p>
+      <div class="hero-buttons">
+        <a href="#produits" class="btn btn-primary">
+          Découvrir la carte
+          <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+        <a href="#boutiques" class="btn btn-ghost">
+          Trouver une boutique
+        </a>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <span class="hero-fruit f1">🥭</span>
+      <span class="hero-fruit f2">🍓</span>
+      <span class="hero-fruit f3">🍍</span>
+      <span class="hero-fruit f4">🥥</span>
+
+      <!-- SVG smoothie cup -->
+      <svg class="hero-cup" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="cupG" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95"/>
+            <stop offset="100%" stop-color="#FFE5B4" stop-opacity="0.6"/>
+          </linearGradient>
+          <linearGradient id="liquidG" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#FFA85A"/>
+            <stop offset="50%" stop-color="#FF6B35"/>
+            <stop offset="100%" stop-color="#E85D04"/>
+          </linearGradient>
+        </defs>
+        <circle cx="200" cy="200" r="160" fill="url(#cupG)" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>
+        <circle cx="200" cy="200" r="135" fill="url(#liquidG)"/>
+        <ellipse cx="170" cy="160" rx="40" ry="22" fill="white" opacity="0.25"/>
+        <ellipse cx="180" cy="155" rx="20" ry="10" fill="white" opacity="0.4"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="hero-marquee">
+    <div class="marquee-track">
+      <span>Pour toujours plus de fraîcheur <span class="marquee-star">✦</span> Frais & naturel <span class="marquee-star">✦</span> Mixé devant vous <span class="marquee-star">✦</span> Plus de 30 recettes <span class="marquee-star">✦</span> Pause gourmande <span class="marquee-star">✦</span></span>
+      <span>Pour toujours plus de fraîcheur <span class="marquee-star">✦</span> Frais & naturel <span class="marquee-star">✦</span> Mixé devant vous <span class="marquee-star">✦</span> Plus de 30 recettes <span class="marquee-star">✦</span> Pause gourmande <span class="marquee-star">✦</span></span>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     CONCEPT
+     ═══════════════════════════════════════════════════════════════ -->
+<section id="concept">
+  <div class="section-wrap">
+    <span class="section-tag">Le concept</span>
+    <h2 class="section-title">
+      Un juice bar pensé<br>
+      pour <em>les centres commerciaux.</em>
+    </h2>
+
+    <div class="concept-grid">
+      <div class="concept-card fresh">
+        <div class="deco-circle"></div>
+        <span class="concept-emoji">🥭</span>
+        <h3>Mixé devant vous</h3>
+        <p>Chaque smoothie est préparé à la minute. Fruits entiers, sorbet, jus frais. Aucune préparation à l'avance, aucun concentré.</p>
+      </div>
+
+      <div class="concept-card fast">
+        <div class="deco-circle"></div>
+        <span class="concept-emoji">⚡</span>
+        <h3>Rapide & gourmand</h3>
+        <p>Une pause de 3 minutes au cœur du shopping. Le rythme du centre commercial, la qualité du bar à jus.</p>
+      </div>
+
+      <div class="concept-card healthy">
+        <span class="concept-emoji">🌿</span>
+        <h3>Sain par nature</h3>
+        <p>Wraps, salades, bagels. Une offre nutritionnelle complète pour toute la journée.</p>
+      </div>
+
+      <div class="concept-card choice">
+        <div class="big-stat">30<em>+</em></div>
+        <h3>recettes signature</h3>
+        <p>Tahiti, California, Copacabana, Miami, Mykonos... À chaque destination, sa saveur. À chaque saveur, son moment.</p>
+      </div>
+
+      <div class="concept-card serve">
+        <span class="concept-emoji">🏝️</span>
+        <h3>Un voyage<br>à chaque gorgée</h3>
+        <p>Pensé comme une évasion. Conçu comme un rituel.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PRODUITS
+     ═══════════════════════════════════════════════════════════════ -->
+<section id="produits">
+  <div class="section-wrap">
+    <div class="products-header">
+      <div>
+        <span class="section-tag">La carte</span>
+        <h2 class="section-title">
+          Une carte qui voyage,<br>
+          une fraîcheur qui <em>reste.</em>
+        </h2>
+      </div>
+      <p class="right-text">
+        De Tahiti à Copacabana, de Miami à Mykonos. Nos recettes signature traversent
+        le monde sans bouger de votre verre. Sélectionnez votre destination du jour.
+      </p>
+    </div>
+
+    <div class="category-pills">
+      <button class="pill active" data-cat="all">Tout</button>
+      <button class="pill" data-cat="smoothies">Smoothies</button>
+      <button class="pill" data-cat="bubble">Bubble Tea</button>
+      <button class="pill" data-cat="milkshake">Milkshakes</button>
+      <button class="pill" data-cat="jus">Jus Frais</button>
+      <button class="pill" data-cat="crepes">Crêpes & Gaufres</button>
+      <button class="pill" data-cat="glaces">Glaces</button>
+      <button class="pill" data-cat="donuts">Donuts</button>
+      <button class="pill" data-cat="sandwich">Sandwich</button>
+    </div>
+
+    <div class="products-grid" id="products-grid">
+      <!-- Smoothies stars -->
+      <article class="product-card" data-cat="smoothies">
+        <div class="product-visual smoothies">
+          <span class="product-deco d1">🥭</span>
+          <span class="product-deco d2">🍓</span>
+          <span class="product-emoji">🥤</span>
+        </div>
+        <div class="product-info">
+          <div class="product-cat">Smoothie · #01</div>
+          <h3 class="product-name">Tahiti</h3>
+          <p class="product-desc">Mangue, papaye, fruit de la passion, banane, yaourt, orange.</p>
+          <div class="product-price">
+            <span><span class="price-from">dès</span><span class="price-amount">6,50€</span></span>
+            <span style="font-size:11px;color:rgba(0,0,0,0.5);text-transform:uppercase;letter-spacing:1px">Petit · Moyen · Grand</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="product-card" data-cat="smoothies">
+        <div class="product-visual smoothies">
+          <span class="product-deco d1">🍓</span>
+          <span class="product-deco d2">🍍</span>
+          <span class="product-emoji">🥤</span>
+        </div>
+        <div class="product-info">
+          <div class="product-cat">Smoothie · #02</div>
+          <h3 class="product-name">California</h3>
+          <p class="product-desc">Fraise, framboise, ananas, passion, jus de pomme.</p>
+          <div class="product-price">
+            <span><span class="price-from">dès</span><span class="price-amount">6,50€</span></span>
+            <span style="font-size:11px;color:rgba(0,0,0,0.5);text-transform:uppercase;letter-spacing:1px">Petit · Moyen · Grand</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="product-card" data-cat="smoothies">
+        <div class="product-visual smoothies">
+          <span class="product-deco d1">🍈</span>
+          <span class="product-deco d2">🥭</span>
+          <span class="product-emoji">🥤</span>
+        </div>
+        <div class="product-info">
+          <div class="product-cat">Smoothie · #03</div>
+          <h3 class="product-name">Copacabana</h3>
+          <p class="product-desc">Fraise, melon, ananas, jus de pomme.</p>
+          <div class="product-price">
+            <span><span class="price-from">dès</span><span class="price-amount">6,50€</span></span>
+            <span style="font-size:11px;color:rgba(0,0,0,0.5);text-transform:uppercase;letter-spacing:1px">Petit · Moyen · Grand</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Bubble Tea -->
+      <article class="product-card" data-cat="bubble">
+        <div class="product-visual bubble">
+          <span class="product-deco d1">🫧</span>
+          <span class="product-deco d2">🍑</span>
+          <span class="product-emoji">🧋</span>
+        </div>
+        <div class="product-info">
+          <div class="product-cat">Bubble Tea · Iced</div>
+          <h3 class="product-name">Sunset Tea</h3>
+          <p class="product-desc">Thé vert glacé à la passion, perles d'ananas.</p>
+          <div class="product-price">
+            <span><span class="price-from">dès</span><span class="price-amount">6,50€</span></span>
+            <span style="font-size:11px;color:rgba(0,0,0,0.5);text-transform:uppercase;letter-spacing:1px">Perles incluses</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="product-card" data-cat="bubble">
+        <div class="product-visual bubble">
+          <span class="product-deco d1">🌸</span>
+          <span class="product-deco d2">🫧</span>
+          <span class="product-emoji">🧋</span>
+        </div>
+        <div class="product-info">
+          <div class="product-cat">Bubble Tea · Iced</div>
+          <h3 class="product-name">Pink Beach</h3>
+          <p class="product-desc">Thé vert glacé à la passion, perles framboise.</p>
+          <div class="product-price">
+            <span><span class="price-from">dès</span><span class="price-amount">6,50€</span></span>
+            <span style="font-size:11px;color:rgba(0,0,0,0.5);text-transform:uppercase;letter-spacing:1px">Perles incluses</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Milkshake -->
+      <article class="product-card" data-cat="milkshake">
+        <div class="product-visual milkshake">
+          <span class="product-deco d1">🍪</span>
+          <span class="product-deco d2">🍫</span>
+          <span class="product-emoji">🍦</span>
+        </div>
+        <div class="product-info">
+          <div class="product-cat">Milkshake · Signature</div>
+          <h3 class="product-name">Cookie Mokkie</h3>
+          <p class="product-desc">Oreo, Nutella, glace vanille, crème fouettée.</p>
+          <div class="product-price">
+            <span><span class="price-from">dès</span><span class="price-amount">6,50€</span></span>
+            <span style="font-size:11px;color:rgba(0,0,0,0.5);text-transform:uppercase;letter-spacing:1px">Petit · Moyen · Grand</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="product-card" data-cat="milkshake">
+        <div class="product-visual milkshake">
+          <span class="product-deco d1">🍫</span>
+          <span class="product-deco d2">🥥</span>
+          <span class="product-emoji">🍦</span>
+        </div>
+        <div class="product-info">
+          <div class="product-cat">Milkshake · Signature</div>
+          <h3 class="product-name">Coconut Rio</h3>
+          <p class="product-desc">Coco, Nutella, glace vanille, crème fouettée.</p>
+          <div class="product-price">
+            <span><span class="price-from">dès</span><span class="price-amount">6,50€</span></span>
+            <span style="font-size:11px;color:rgba(0,0,0,0.5);text-transform:uppercase;letter-spacing:1px">Petit · Moyen · Grand</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Jus -->
+      <article class="product-card" data-cat="jus">
+        <div class="product-visual jus">
+          <span class="product-deco d1">🍍</span>
+          <span class="product-deco d2">🍈</span>
+          <span class="product-emoji">🍹</span>
+        </div>
+        <div class="product-info">
+          <div class="product-cat">Jus Frais · Vitaminé</div>
+          <h3 class="product-name">Tropical</h3>
+          <p class="product-desc">Mangue, melon, ananas. Pressé minute.</p>
+          <div class="product-price">
+            <span><span class="price-from">dès</span><span class="price-amount">6,50€</span></span>
+            <span style="font-size:11px;color:rgba(0,0,0,0.5);text-transform:uppercase;letter-spacing:1px">100% naturel</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="product-card" data-cat="jus">
+        <div class="product-visual jus">
+          <span class="product-deco d1">🌿</span>
+          <span class="product-deco d2">🍍</span>
+          <span class="product-emoji">🥒</span>
+        </div>
+        <div class="product-info">
+          <div class="product-cat">Jus Frais · Détox</div>
+          <h3 class="product-name">Bonne Mine</h3>
+          <p class="product-desc">Ananas, gingembre, menthe, jus de pomme.</p>
+          <div class="product-price">
+            <span><span class="price-from">dès</span><span class="price-amount">6,50€</span></span>
+            <span style="font-size:11px;color:rgba(0,0,0,0.5);text-transform:uppercase;letter-spacing:1px">Effet boost</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Crepes -->
+      <article class="product-card" data-cat="crepes">
+        <div class="product-visual crepes">
+          <span class="product-deco d1">🍫</span>
+          <span class="product-deco d2">🍓</span>
+          <span class="product-emoji">🥞</span>
+        </div>
+        <div class="product-info">
+          <div class="product-cat">Crêpes & Gaufres</div>
+          <h3 class="product-name">Crêpe maison</h3>
+          <p class="product-desc">Chocolat, sucre, spéculoos, caramel, pistache. Suppléments à 0,95€.</p>
+          <div class="product-price">
+            <span><span class="price-amount">3,95€</span></span>
+            <span style="font-size:11px;color:rgba(0,0,0,0.5);text-transform:uppercase;letter-spacing:1px">+ suppléments</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="product-card" data-cat="crepes">
+        <div class="product-visual crepes">
+          <span class="product-deco d1">🍯</span>
+          <span class="product-deco d2">🍓</span>
+          <span class="product-emoji">🧇</span>
+        </div>
+        <div class="product-info">
+          <div class="product-cat">Crêpes & Gaufres</div>
+          <h3 class="product-name">Gaufre liégeoise</h3>
+          <p class="product-desc">Chocolat, sucre, spéculoos, caramel, pistache. Suppléments à 0,95€.</p>
+          <div class="product-price">
+            <span><span class="price-amount">3,95€</span></span>
+            <span style="font-size:11px;color:rgba(0,0,0,0.5);text-transform:uppercase;letter-spacing:1px">+ suppléments</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Glaces -->
+      <article class="product-card" data-cat="glaces">
+        <div class="product-visual glaces">
+          <span class="product-deco d1">🍓</span>
+          <span class="product-deco d2">🍦</span>
+          <span class="product-emoji">🍨</span>
+        </div>
+        <div class="product-info">
+          <div class="product-cat">Glaces · Artisanales</div>
+          <h3 class="product-name">Cornet ou Pot</h3>
+          <p class="product-desc">Au choix : cornet (Petit, Moyen, Grand) ou pot (Moyen, Grand).</p>
+          <div class="product-price">
+            <span><span class="price-from">dès</span><span class="price-amount">3,50€</span></span>
+            <span style="font-size:11px;color:rgba(0,0,0,0.5);text-transform:uppercase;letter-spacing:1px">3 tailles</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Donuts -->
+      <article class="product-card" data-cat="donuts">
+        <div class="product-visual donuts">
+          <span class="product-deco d1">🌈</span>
+          <span class="product-deco d2">✨</span>
+          <span class="product-emoji">🍩</span>
+        </div>
+        <div class="product-info">
+          <div class="product-cat">Pause sucrée</div>
+          <h3 class="product-name">Donuts & Muffins</h3>
+          <p class="product-desc">Donuts glacés et muffins moelleux, fournée du jour.</p>
+          <div class="product-price">
+            <span><span class="price-amount">3,95€</span></span>
+            <span style="font-size:11px;color:rgba(0,0,0,0.5);text-transform:uppercase;letter-spacing:1px">À l'unité</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Sandwich -->
+      <article class="product-card" data-cat="sandwich">
+        <div class="product-visual sandwich">
+          <span class="product-deco d1">🥬</span>
+          <span class="product-deco d2">🍅</span>
+          <span class="product-emoji">🥪</span>
+        </div>
+        <div class="product-info">
+          <div class="product-cat">Salé · Express</div>
+          <h3 class="product-name">Sandwich du jour</h3>
+          <p class="product-desc">Pain frais, garniture maison, légumes croquants.</p>
+          <div class="product-price">
+            <span><span class="price-amount">6,95€</span></span>
+            <span style="font-size:11px;color:rgba(0,0,0,0.5);text-transform:uppercase;letter-spacing:1px">Préparé minute</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Softs -->
+      <article class="product-card" data-cat="softs">
+        <div class="product-visual softs">
+          <span class="product-deco d1">💧</span>
+          <span class="product-deco d2">🧊</span>
+          <span class="product-emoji">🥤</span>
+        </div>
+        <div class="product-info">
+          <div class="product-cat">Boissons</div>
+          <h3 class="product-name">Sodas & Eau</h3>
+          <p class="product-desc">Coca, Fanta, Sprite et bouteille d'eau plate 50cl.</p>
+          <div class="product-price">
+            <span><span class="price-from">dès</span><span class="price-amount">2,20€</span></span>
+            <span style="font-size:11px;color:rgba(0,0,0,0.5);text-transform:uppercase;letter-spacing:1px">Soft 2,50€</span>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     STATS
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="stats-banner">
+  <div class="stats-grid">
+    <div class="stat-item">
+      <div class="stat-num">5<em>+</em></div>
+      <div class="stat-label">Boutiques en France</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">30<em>+</em></div>
+      <div class="stat-label">Recettes signature</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">14<em>M</em></div>
+      <div class="stat-label">Visiteurs annuels<br>O'Parinor</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">100<em>%</em></div>
+      <div class="stat-label">Fruits frais<br>mixés minute</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     BOUTIQUES
+     ═══════════════════════════════════════════════════════════════ -->
+<section id="boutiques">
+  <div class="section-wrap">
+    <span class="section-tag">Nos boutiques</span>
+    <h2 class="section-title">
+      Cinq adresses,<br>
+      une seule <em>obsession.</em>
+    </h2>
+
+    <div class="shops-list">
+      <div class="shop-row">
+        <div class="shop-num">01</div>
+        <div>
+          <div class="shop-name">O'Parinor</div>
+          <div class="shop-city">Aulnay-sous-Bois · 93600<br>Face Go Sport & Darty</div>
+        </div>
+        <div></div>
+        <div class="shop-stat">
+          14,6M
+          <span class="stat-sub">Visiteurs / an</span>
+        </div>
+        <div class="shop-arrow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </div>
+      </div>
+
+      <div class="shop-row">
+        <div class="shop-num">02</div>
+        <div>
+          <div class="shop-name">Rosny 2</div>
+          <div class="shop-city">Rosny-sous-Bois · Design épuré<br>Bientôt</div>
+        </div>
+        <div></div>
+        <div class="shop-stat">
+          Coming
+          <span class="stat-sub">Très prochainement</span>
+        </div>
+        <div class="shop-arrow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </div>
+      </div>
+
+      <div class="shop-row">
+        <div class="shop-num">03</div>
+        <div>
+          <div class="shop-name">Nice TNL</div>
+          <div class="shop-city">Centre commercial Nice TNL<br>Face Carrefour</div>
+        </div>
+        <div></div>
+        <div class="shop-stat">
+          8M
+          <span class="stat-sub">Visiteurs / an</span>
+        </div>
+        <div class="shop-arrow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </div>
+      </div>
+
+      <div class="shop-row">
+        <div class="shop-num">04</div>
+        <div>
+          <div class="shop-name">Toulon Mayol</div>
+          <div class="shop-city">Centre commercial Mayol<br>Face Carrefour</div>
+        </div>
+        <div></div>
+        <div class="shop-stat">
+          10M
+          <span class="stat-sub">Visiteurs / an</span>
+        </div>
+        <div class="shop-arrow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </div>
+      </div>
+
+      <div class="shop-row">
+        <div class="shop-num">05</div>
+        <div>
+          <div class="shop-name">Marseille Grand Littoral</div>
+          <div class="shop-city">78 000 m² GLA<br>Face Primark</div>
+        </div>
+        <div></div>
+        <div class="shop-stat">
+          13M
+          <span class="stat-sub">Visiteurs / an</span>
+        </div>
+        <div class="shop-arrow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     REJOIGNEZ-NOUS
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="join-section" id="contact">
+  <div class="join-content">
+    <div class="join-eyebrow">Recrutement</div>
+    <h2 class="join-title">
+      Rejoignez<br>
+      <em>l'équipe Mangos.</em>
+    </h2>
+    <p class="join-text">
+      Stage, job d'été, CDD, CDI. On cherche des esprits curieux,
+      des sourires généreux, des mains qui aiment le bel ouvrage.
+      Envoyez votre candidature, on prend toujours le temps de la lire.
+    </p>
+    <a href="mailto:contact@mangosjuice.com" class="btn btn-primary" style="background:white;color:var(--mango-deep)">
+      Envoyer ma candidature
+      <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </a>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     FOOTER
+     ═══════════════════════════════════════════════════════════════ -->
+<footer>
+  <div class="footer-giant">Mangos</div>
+
+  <div class="footer-main">
+    <div class="footer-brand">
+      <a href="#" class="logo">Mangos<span class="logo-dot"></span></a>
+      <p>Le bar à smoothies inspiré du Juice Bar anglo-saxon, pensé pour les centres commerciaux français. Pour toujours plus de fraîcheur.</p>
+    </div>
+
+    <div class="footer-col">
+      <h4>Navigation</h4>
+      <a href="#concept">Le concept</a>
+      <a href="#produits">Nos produits</a>
+      <a href="#boutiques">Nos boutiques</a>
+      <a href="#contact">Recrutement</a>
+    </div>
+
+    <div class="footer-col">
+      <h4>Contact</h4>
+      <p>Centre Commercial O'Parinor<br>93600 Aulnay-sous-Bois</p>
+      <a href="tel:+33668360609">06 68 36 06 09</a>
+      <a href="mailto:contact@mangosjuice.com">contact@mangosjuice.com</a>
+    </div>
+
+    <div class="footer-col">
+      <h4>Horaires</h4>
+      <p>Lundi — Vendredi<br>10h00 → 20h30</p>
+      <p>Samedi<br>10h00 → 21h00</p>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <p>© 2025 Mangos · Tous droits réservés</p>
+    <p>Pour toujours plus de fraîcheur ✦</p>
+  </div>
+</footer>
+
+<script>
+  // Navigation scroll effect
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 30) nav.classList.add('scrolled');
+    else nav.classList.remove('scrolled');
+  });
+
+  // Filtre produits
+  const pills = document.querySelectorAll('.pill');
+  const cards = document.querySelectorAll('.product-card');
+
+  pills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      pills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      const cat = pill.dataset.cat;
+      cards.forEach(card => {
+        if (cat === 'all' || card.dataset.cat === cat) {
+          card.style.display = '';
+          requestAnimationFrame(() => {
+            card.style.opacity = '0';
+            card.style.transform = 'scale(0.95)';
+            requestAnimationFrame(() => {
+              card.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+              card.style.opacity = '1';
+              card.style.transform = 'scale(1)';
+            });
+          });
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    });
+  });
+
+  // Reveal-on-scroll
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.concept-card, .product-card, .shop-row, .stat-item').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(40px)';
+    el.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+    observer.observe(el);
+  });
+</script>
+
+</body>
+</html>
