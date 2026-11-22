@@ -1691,3 +1691,9 @@ code {
   padding: 1px 5px;
   border-radius: 5px;
 }
+textarea.ios-text {
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.35;
+  resize: vertical;
+}

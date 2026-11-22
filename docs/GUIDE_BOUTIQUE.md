@@ -18,10 +18,18 @@ L'iPhone imprime directement sur l'**Epson TM-m30II** en Wi-Fi.
 
 Fin de journée : 📊 Statistiques → « Imprimer le récapitulatif » (ticket de synthèse, non fiscal).
 
-Un client demande une facture sans détail (note de frais) : 📋 Commandes → touche la commande →
-« 🧾 Facture sans détail ». Le ticket ne montre que le n° de commande, la date et le total TTC
-(aucun produit, aucun mode de paiement). Ce n'est pas une facture officielle : si le client a
-besoin d'une vraie facture (avec SIRET, TVA…), elle se fait sur le logiciel de caisse.
+Un client veut un ticket : 📋 Commandes → touche la commande →
+
+- **« 🧾 Ticket client »** : sur le modèle du ticket de la caisse (nom et adresse de la boutique,
+  NAF, TVA, SIRET, articles avec quantité / prix / taux de TVA, total, règlement, tableau de TVA).
+  Sans les détails de préparation (suppléments, sur place / à emporter, bipper).
+- **« 🧾 Sans détail »** : même en-tête, mais seulement le total et la TVA (note de frais).
+
+L'en-tête et les taux de TVA se changent dans ⚙️ Réglages → Ticket client. **Vérifie les taux** :
+seul celui de l'eau (5,5 %) est confirmé par un vrai ticket de la caisse.
+
+Ces tickets portent la mention « Ticket client - non fiscal » : ils ne remplacent pas le ticket
+de caisse officiel (NF525), qui reste imprimé par le logiciel de caisse.
 
 La suite de ce guide concerne la **passerelle** (réglage « Passerelle », imprimante CSI GIANT-100).
 

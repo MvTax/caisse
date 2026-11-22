@@ -24,7 +24,7 @@ import {
 } from './bridgeClient';
 import type { EscPos } from './escpos';
 import { eposPrint, eposStatus } from './eposClient';
-import { charsetTicket, invoiceTicket, orderTicket, testTicket } from './ticket';
+import { charsetTicket, customerTicket, invoiceTicket, orderTicket, testTicket } from './ticket';
 
 export const servingMode = detectServingMode(location);
 
@@ -254,12 +254,27 @@ export async function printRaw(ticket: EscPos, label: string): Promise<Result<Pr
   return send(ticket, `raw-${Date.now()}`, label, 1);
 }
 
-/** Note client sans détail (total seul) pour une commande. N'entre pas dans le journal. */
-export async function printInvoice(orderId: string): Promise<Result<PrintResponse>> {
+/**
+ * Ticket client (détaillé, sur le modèle du ticket de caisse) ou note sans détail (total
+ * seul) pour une commande. N'entre pas dans le journal d'impression de la commande.
+ */
+export async function printCustomerReceipt(
+  orderId: string,
+  kind: 'detailed' | 'total-only',
+): Promise<Result<PrintResponse>> {
   const order = data.value.orders.find((o) => o.id === orderId);
   if (!order) {
     return { ok: false, error: { kind: 'bad-response', message: 'Commande introuvable' } };
   }
-  const ticket = invoiceTicket(order, { columns: data.value.settings.columns, at: new Date() });
-  return send(ticket, `invoice-${order.id}-${Date.now()}`, `Note commande #${order.number}`, 1);
+  const s = data.value.settings;
+  const opts = {
+    columns: s.columns,
+    at: new Date(),
+    header: s.receiptHeader,
+    vatRates: s.vatRates,
+  };
+  const ticket =
+    kind === 'detailed' ? customerTicket(menu, order, opts) : invoiceTicket(order, opts);
+  const label = kind === 'detailed' ? 'Ticket client' : 'Note sans detail';
+  return send(ticket, `receipt-${order.id}-${Date.now()}`, `${label} #${order.number}`, 1);
 }

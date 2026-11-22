@@ -127,21 +127,49 @@ test('Epson : récapitulatif de la journée depuis les statistiques', async ({ p
   expect(recap).toContain('non fiscal');
 });
 
-test('Epson : facture sans détail depuis la fiche commande (total seul)', async ({ page }) => {
+test('Epson : ticket client et note sans détail depuis la fiche commande', async ({ page }) => {
   const prints = await mockEpson(page, () => 'ok');
   await page.goto('/');
   await orderSandwich(page);
   await expect(page.getByRole('status').filter({ hasText: 'Commande #1 imprimée' })).toBeVisible();
   await page.getByRole('button', { name: /^Commandes/ }).click();
   await page.getByTestId('order-row').first().click();
-  await page.getByRole('button', { name: /Facture sans détail/ }).click();
+
+  await page.getByRole('button', { name: /Ticket client/ }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Ticket client imprimé' })).toBeVisible();
+  const client = commandBytes(prints[1]!).toString('latin1');
+  expect(client).toContain('Mangos Creteil Soleil');
+  expect(client).toContain('SIRET:839 932 977 00029');
+  expect(client).toContain('Sandwich');
+  expect(client).toContain('REGLEMENT : Carte bancaire');
+  expect(client).toContain('MT TVA');
+  expect(client).not.toContain('BIPPER');
+
+  await page.getByRole('button', { name: /Sans détail/ }).click();
   await expect(
-    page.getByRole('status').filter({ hasText: 'Facture sans détail imprimée' }),
+    page.getByRole('status').filter({ hasText: 'Note sans détail imprimée' }),
   ).toBeVisible();
-  expect(prints).toHaveLength(2);
-  const note = commandBytes(prints[1]!).toString('latin1');
+  const note = commandBytes(prints[2]!).toString('latin1');
   expect(note).toContain('NOTE');
   expect(note).toContain('TOTAL TTC');
   expect(note).not.toContain('Sandwich');
-  expect(note).not.toContain('CARTE');
+  expect(note).not.toContain('Carte');
+  expect(prints).toHaveLength(3);
+});
+
+test('Réglages : taux de TVA modifiable, utilisé sur le ticket client', async ({ page }) => {
+  const prints = await mockEpson(page, () => 'ok');
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Réglages', exact: true }).click();
+  await page
+    .getByRole('radiogroup', { name: 'TVA Sandwich' })
+    .getByRole('radio', { name: '20 %' })
+    .click();
+  await page.getByRole('button', { name: /^Accueil/ }).click();
+  await orderSandwich(page);
+  await page.getByRole('button', { name: /^Commandes/ }).click();
+  await page.getByTestId('order-row').first().click();
+  await page.getByRole('button', { name: /Ticket client/ }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Ticket client imprimé' })).toBeVisible();
+  expect(commandBytes(prints.at(-1)!).toString('latin1')).toMatch(/\n20% +1,16 +5,79 +6,95/);
 });

@@ -10,7 +10,7 @@ import { lineIcon } from './helpers';
 import {
   canPrint,
   printingIds,
-  printInvoice,
+  printCustomerReceipt,
   printOrderWithPrompt,
 } from '../printing/printService';
 
@@ -25,7 +25,7 @@ export function OrderSheet({ order: o, onClose }: { order: Order; onClose: () =>
   }, [onClose]);
   const created = new Date(o.createdAt);
   const done = o.status === 'done';
-  const [invoiceBusy, setInvoiceBusy] = useState(false);
+  const [receiptBusy, setReceiptBusy] = useState<string | null>(null);
   return (
     <div class="sheet-backdrop" onClick={onClose}>
       <div
@@ -112,20 +112,30 @@ export function OrderSheet({ order: o, onClose }: { order: Order; onClose: () =>
           </button>
         )}
         {canPrint() && (
-          <button
-            type="button"
-            class="btn btn-secondary btn-block"
-            disabled={invoiceBusy}
-            onClick={async () => {
-              setInvoiceBusy(true);
-              const r = await printInvoice(o.id);
-              setInvoiceBusy(false);
-              if (r.ok) showToast('🧾 Facture sans détail imprimée');
-              else showToast(r.error.message, 'error');
-            }}
-          >
-            {invoiceBusy ? 'Envoi…' : '🧾 Facture sans détail (total seul)'}
-          </button>
+          <div class="sheet-actions">
+            {(
+              [
+                ['detailed', '🧾 Ticket client', 'Ticket client imprimé'],
+                ['total-only', '🧾 Sans détail', 'Note sans détail imprimée'],
+              ] as const
+            ).map(([kind, label, done]) => (
+              <button
+                key={kind}
+                type="button"
+                class="btn btn-secondary"
+                disabled={!!receiptBusy}
+                onClick={async () => {
+                  setReceiptBusy(kind);
+                  const r = await printCustomerReceipt(o.id, kind);
+                  setReceiptBusy(null);
+                  if (r.ok) showToast(`🧾 ${done}`);
+                  else showToast(r.error.message, 'error');
+                }}
+              >
+                {receiptBusy === kind ? 'Envoi…' : label}
+              </button>
+            ))}
+          </div>
         )}
         <div class="sheet-actions">
           <button

@@ -11,6 +11,7 @@ import type { Settings as S } from '../storage/settings';
 import { parseBipperList } from '../domain/order';
 import { plural } from './helpers';
 import { PrintSettings } from './PrintSettings';
+import { ReceiptSettings } from './ReceiptSettings';
 import { TopBar } from './TopBar';
 
 function setSetting<K extends keyof S>(key: K, value: S[K]) {
@@ -53,6 +54,7 @@ export function Settings() {
       <TopBar title="Réglages" onBack={pop} backLabel="Accueil" />
       <main class="content">
         <PrintSettings />
+        <ReceiptSettings />
 
         <h2 class="ios-group-title">Commandes</h2>
         <div class="ios-group">

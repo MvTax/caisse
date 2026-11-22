@@ -5,10 +5,12 @@ import { createOrder } from '../../src/domain/order';
 import { priceItem, type Selection } from '../../src/domain/pricing';
 import { computeStats } from '../../src/domain/stats';
 import { formatCents } from '../../src/domain/money';
+import { DEFAULT_RECEIPT_HEADER, DEFAULT_VAT_RATES } from '../../src/storage/settings';
 import { renderPreview } from '../../src/printing/escpos';
 import {
   charsetTicket,
   dayRecapTicket,
+  customerTicket,
   invoiceTicket,
   orderTicket,
   testTicket,
@@ -143,24 +145,81 @@ describe('tickets de test', () => {
   });
 });
 
-describe('facture sans détail (note client)', () => {
-  const later = new Date('2026-11-22T15:00:00Z');
+const receipt = (columns: number) => ({
+  columns,
+  at: new Date('2026-11-22T15:00:00Z'),
+  header: DEFAULT_RECEIPT_HEADER,
+  vatRates: DEFAULT_VAT_RATES,
+});
+const show = (p: { toPreview(): Parameters<typeof renderPreview>[0] }, columns = 48) =>
+  text(renderPreview(p.toPreview(), columns));
 
+describe('ticket client (modèle ticket de caisse)', () => {
   it.each([32, 42, 48])('aucune ligne ne dépasse %i colonnes', (columns) => {
-    const p = invoiceTicket(order, { columns, at: later });
-    for (const l of renderPreview(p.toPreview(), columns)) {
-      expect(l.length, l).toBeLessThanOrEqual(columns);
+    for (const p of [
+      customerTicket(MENU, order, receipt(columns)),
+      invoiceTicket(order, receipt(columns)),
+    ]) {
+      for (const l of renderPreview(p.toPreview(), columns)) {
+        expect(l.length, l).toBeLessThanOrEqual(columns);
+      }
     }
   });
 
-  it('total seul : ni articles de la carte, ni paiement, ni bipper', () => {
-    const t = text(renderPreview(invoiceTicket(order, { columns: 48, at: later }).toPreview(), 48));
+  it('en-tête de la boutique, articles en colonnes, total, règlement, TVA', () => {
+    const t = show(customerTicket(MENU, order, receipt(48)));
+    expect(t).toContain('Mangos Creteil Soleil');
+    expect(t).toContain('94000 CRÉTEIL - France');
+    expect(t).toContain('SIRET:839 932 977 00029');
+    expect(t).toMatch(/TICKET N°12 +le 22\/11\/2026 14:32/);
+    expect(t).toMatch(/Qté +PU TTC +Prix TTC +TVA/);
+    expect(t).toMatch(/Bouteille d'eau +1 +2,20 +2,20 +5,5/);
+    expect(t).toMatch(/Gaufre Chocolat +2 +6,80 +13,60 +10/);
+    expect(t).toContain("Nombre total d'articles : 5 / 4 ligne(s)");
+    expect(t).toMatch(/TOTAL TTC :/);
+    expect(t).toMatch(/REGLEMENT : Espèces +50,00 €/);
+    expect(t).toMatch(/Rendu +\S+ €/);
+    expect(t).toMatch(/TVA +MT TVA +MT HT +MT TTC/);
+    expect(t).toMatch(/^5,5% /m);
+    expect(t).toMatch(/^10% /m);
+    expect(t).toContain('Ticket client - non fiscal');
+    // Sans les détails de préparation, sans imitation du ticket certifié.
+    for (const hidden of ['Oreo', 'EMPORTER', 'BIPPER', 'NF525', 'COMMANDE #']) {
+      expect(t, hidden).not.toContain(hidden);
+    }
+  });
+
+  it('paiement carte', () => {
+    const card = { ...order, payment: { method: 'card' as const } };
+    expect(show(customerTicket(MENU, card, receipt(48)))).toMatch(
+      new RegExp(`REGLEMENT : Carte bancaire +${formatCents(order.total).replace(/\s/g, '\\s')}`),
+    );
+  });
+
+  it('32 colonnes : nom sur sa ligne, chiffres en dessous', () => {
+    const t = show(customerTicket(MENU, order, receipt(32)), 32);
+    expect(t).toMatch(/Bouteille d'eau\n +1 +2,20 +2,20 +5,5/);
+  });
+
+  it('pas d’ouverture du tiroir, coupe finale', () => {
+    for (const p of [customerTicket(MENU, order, receipt(48)), invoiceTicket(order, receipt(48))]) {
+      const bytes = [...p.toBytes()];
+      expect(bytes.slice(-4)).toEqual([0x1d, 0x56, 0x42, 0x00]);
+      expect(bytes.some((b, i) => b === 0x1b && bytes[i + 1] === 0x70)).toBe(false);
+    }
+  });
+});
+
+describe('note sans détail', () => {
+  it('total et TVA seulement : ni articles, ni paiement, ni bipper', () => {
+    const t = show(invoiceTicket(order, receipt(48)));
+    expect(t).toContain('Mangos Creteil Soleil');
     expect(t).toContain('NOTE');
     expect(t).toContain('sans détail');
-    expect(t).toContain('#12');
-    expect(t).toContain('22/11/2026 14:32'); // date de la commande, heure de Paris
+    expect(t).toContain('N°12');
+    expect(t).toContain('22/11/2026 14:32');
     expect(t).toMatch(/Consommations +\S+ €/);
-    expect(t).toMatch(new RegExp(`TOTAL TTC +${formatCents(order.total).replace(/\s/g, '\\s')}`));
+    expect(t).toMatch(/TVA +MT TVA +MT HT +MT TTC/);
     expect(t).toContain('non fiscal');
     for (const hidden of [
       'Gaufre',
@@ -168,20 +227,13 @@ describe('facture sans détail (note client)', () => {
       'Oreo',
       'Glace',
       'Bouteille',
-      'ESPÈCES',
-      'CARTE',
-      'RENDU',
-      'Reçu',
+      'Espèces',
+      'Carte',
+      'Rendu',
       'BIPPER',
       'EMPORTER',
     ]) {
       expect(t, hidden).not.toContain(hidden);
     }
-  });
-
-  it('pas d’ouverture du tiroir, coupe finale', () => {
-    const bytes = [...invoiceTicket(order, { columns: 48, at: later }).toBytes()];
-    expect(bytes.slice(-4)).toEqual([0x1d, 0x56, 0x42, 0x00]);
-    expect(bytes.some((b, i) => b === 0x1b && bytes[i + 1] === 0x70)).toBe(false);
   });
 });

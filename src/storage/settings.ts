@@ -1,3 +1,5 @@
+import type { CategoryId } from '../data/menu';
+
 export type PrinterMode = 'epson' | 'bridge';
 
 export interface Settings {
@@ -27,7 +29,40 @@ export interface Settings {
   bippers: string[];
   /** Jeton partagé optionnel avec la passerelle. */
   token: string;
+  /** En-tête du ticket client : une ligne par ligne imprimée (nom, adresse, mentions). */
+  receiptHeader: string;
+  /** Taux de TVA par catégorie, en points de base (550 = 5,5 %). Prix de la carte = TTC. */
+  vatRates: Record<CategoryId, number>;
 }
+
+/**
+ * En-tête relevé sur un ticket de la caisse de la boutique (22/11/2026). Modifiable dans
+ * Réglages → Ticket client.
+ */
+export const DEFAULT_RECEIPT_HEADER = [
+  'Mangos Creteil Soleil',
+  'Centre Commercial Créteil Soleil',
+  'Avenue de La France Libre',
+  '94000 CRÉTEIL - France',
+  'NAF:5610C - TVA:FR 67 839932977',
+  'SIRET:839 932 977 00029',
+].join('\n');
+
+/**
+ * Seul le taux de l'eau (5,5 %) est confirmé par le ticket de caisse ; les autres sont des
+ * valeurs de départ À VÉRIFIER par l'utilisateur sur un ticket de caisse de chaque produit.
+ */
+export const DEFAULT_VAT_RATES: Record<CategoryId, number> = {
+  smoothies: 550,
+  bubble: 550,
+  milkshake: 550,
+  jus: 550,
+  softs: 550,
+  crepes: 1000,
+  glaces: 1000,
+  donuts: 1000,
+  sandwich: 1000,
+};
 
 export const DEFAULT_SETTINGS: Settings = {
   printerMode: 'epson',
@@ -45,4 +80,6 @@ export const DEFAULT_SETTINGS: Settings = {
   // Les 11 bippers de la boutique (numéros non consécutifs, fournis par l'utilisateur).
   bippers: ['6', '13', '14', '18', '19', '21', '22', '24', '27', '28', '29'],
   token: '',
+  receiptHeader: DEFAULT_RECEIPT_HEADER,
+  vatRates: { ...DEFAULT_VAT_RATES },
 };

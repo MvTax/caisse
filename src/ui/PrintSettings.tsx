@@ -46,7 +46,7 @@ export function Toggle(props: {
   );
 }
 
-function Choice<T extends string | number>(props: {
+export function Choice<T extends string | number>(props: {
   label: string;
   value: T;
   options: [T, string][];

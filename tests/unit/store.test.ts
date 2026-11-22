@@ -152,6 +152,13 @@ describe('store', () => {
       epsonIp: '192.168.1.103',
       epsonFormat: 'escpos',
     });
+    s.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ settings: { vatRates: { softs: 2000, crepes: 'x' }, receiptHeader: 3 } }),
+    );
+    const st = loadData(s).data.settings;
+    expect(st.vatRates).toMatchObject({ softs: 2000, crepes: 1000, smoothies: 550 });
+    expect(st.receiptHeader).toContain('SIRET:839 932 977 00029');
     s.setItem(STORAGE_KEY, JSON.stringify({ settings: { epsonFormat: 'text' } }));
     expect(loadData(s).data.settings.epsonFormat).toBe('text');
     s.setItem(STORAGE_KEY, JSON.stringify({ settings: { printerMode: 'bridge' } }));
