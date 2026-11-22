@@ -25,13 +25,18 @@ import sys
 import tempfile
 import threading
 import time
+import urllib.request
 import webbrowser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 PORT = int(os.environ.get("TESTEUR_PORT", "8642"))
 HERE = os.path.dirname(os.path.abspath(__file__))
 IS_WIN = platform.system() == "Windows"
-VERSION = "1.0"
+VERSION = "1.1"
+
+# Page intégrée : remplie par outils/assembler.py pour produire testeur-impression.py,
+# un fichier unique qui n'a pas besoin d'index.html à côté.
+EMBEDDED_HTML = None
 
 
 # ---------------------------------------------------------------- utilitaires
@@ -292,11 +297,22 @@ class Handler(SimpleHTTPRequestHandler):
             if not self.origin_ok():
                 return self.json(403, {"error": "Origine refusée."})
             return self.api("GET", {})
-        if self.path in ("/", ""):
-            self.path = "/index.html"
-        if not self.path.split("?")[0] in ("/index.html",):
+        if self.path.split("?")[0] not in ("/", "", "/index.html"):
             return self.send_error(404)
-        return super().do_GET()
+        if EMBEDDED_HTML is not None:
+            body = EMBEDDED_HTML.encode("utf-8")
+        else:
+            try:
+                with open(os.path.join(HERE, "index.html"), "rb") as f:
+                    body = f.read()
+            except OSError:
+                return self.send_error(404, "index.html introuvable a cote de serveur.py")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
 
     def do_POST(self):
         if not self.path.startswith("/api/") or not self.origin_ok():
@@ -349,14 +365,37 @@ class Handler(SimpleHTTPRequestHandler):
             return self.json(500, {"error": str(e)})
 
 
+def already_running(url):
+    try:
+        with urllib.request.urlopen(url + "api/ping", timeout=2) as r:
+            return json.loads(r.read()).get("ok") is True
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def pause_if_double_clicked():
+    # Double-clic sous Windows : la fenêtre se fermerait avant qu'on lise le message.
+    if IS_WIN:
+        try:
+            input("\nAppuyez sur Entrée pour fermer…")
+        except EOFError:
+            pass
+
+
 def main():
+    url = f"http://127.0.0.1:{PORT}/"
     try:
         srv = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
     except OSError as e:
+        if already_running(url):
+            print(f"Le testeur tourne déjà : ouverture de {url}")
+            if "--no-browser" not in sys.argv:
+                webbrowser.open(url)
+            return
         print(f"Impossible d'ouvrir le port {PORT} : {e}")
-        print("Le serveur tourne peut-être déjà. Sinon : TESTEUR_PORT=8643 python3 serveur.py")
+        print("Un autre programme l'utilise. Essayez : TESTEUR_PORT=8643 puis relancez.")
+        pause_if_double_clicked()
         sys.exit(1)
-    url = f"http://127.0.0.1:{PORT}/"
     print(f"Testeur d'impression : {url}")
     print("Laissez cette fenêtre ouverte. Ctrl+C pour arrêter.")
     if "--no-browser" not in sys.argv:
