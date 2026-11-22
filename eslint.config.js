@@ -1,0 +1,24 @@
+import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
+import prettier from 'eslint-config-prettier';
+import globals from 'globals';
+
+export default tseslint.config(
+  { ignores: ['dist', 'legacy', 'node_modules', 'playwright-report', 'test-results'] },
+  js.configs.recommended,
+  ...tseslint.configs.strict,
+  {
+    languageOptions: { globals: { ...globals.browser, ...globals.node } },
+    rules: {
+      // Leçon v1 : jamais de HTML brut injecté.
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+          message: 'Pas de HTML brut : laisser Preact échapper les données.',
+        },
+      ],
+    },
+  },
+  prettier,
+);

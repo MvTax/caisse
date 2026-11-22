@@ -10,5 +10,6 @@ Décompresse ce zip à la racine du repo caisse (CLAUDE.md et le dossier legacy/
 C'est tout. Claude Code te posera ensuite ses questions (papier 80 ou 58 mm, accès Internet de la caisse, etc.).
 
 ## Contenu
+
 - `CLAUDE.md` — le cahier des charges complet que Claude Code relit à chaque session.
 - `legacy/` — l'ancienne version de l'app, le premier jet du site, l'ancienne passerelle, les photos (carte, imprimante, caisse) et les captures des bugs.
