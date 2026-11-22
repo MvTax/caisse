@@ -1,24 +1,51 @@
-import { detectServingMode, DEFAULT_BRIDGE_URL } from './env';
+import { current, direction, stack, tab } from './nav';
+import { Cart } from '../ui/Cart';
+import { Checkout } from '../ui/Checkout';
+import { Drinks } from '../ui/Drinks';
+import { Flow } from '../ui/Flow';
+import { Home } from '../ui/Home';
+import { Orders } from '../ui/Orders';
+import { Settings } from '../ui/Settings';
+import { Stats } from '../ui/Stats';
+import { TabBar } from '../ui/TabBar';
+import { ToastHost } from '../ui/Toast';
 
-const MODE_LABEL = {
-  bridge: 'Servie par la passerelle de la caisse : l’impression sera possible.',
-  https: `Version en ligne (démo). Pour imprimer, ouvre l’app depuis ${DEFAULT_BRIDGE_URL}`,
-  dev: 'Mode développement.',
-} as const;
+function CurrentScreen() {
+  if (tab.value === 'orders') return <Orders />;
+  const s = current.value;
+  switch (s.name) {
+    case 'home':
+      return <Home />;
+    case 'drinks':
+      return <Drinks />;
+    case 'flow':
+      return <Flow state={s.state} />;
+    case 'cart':
+      return <Cart />;
+    case 'checkout':
+      return <Checkout />;
+    case 'stats':
+      return <Stats />;
+    case 'settings':
+      return <Settings />;
+  }
+}
 
 export function App() {
-  const mode = detectServingMode(location);
-  const built = new Date(__BUILD_DATE__).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' });
+  const s = current.value;
+  const showTabs = tab.value === 'orders' || s.name === 'home';
+  // La clé change avec l'écran → animation d'entrée façon iOS.
+  const key =
+    tab.value === 'orders'
+      ? 'orders'
+      : `${stack.value.length}-${s.name}${s.name === 'flow' ? `-${s.state.stepIndex}` : ''}`;
   return (
-    <main class="hello">
-      <h1 class="logo">MA+ Commander</h1>
-      <p class="tagline">Mangos Juice Bar · prise de commande</p>
-      <p class="mode" data-testid="serving-mode" data-mode={mode}>
-        {MODE_LABEL[mode]}
-      </p>
-      <p class="version">
-        Version {__APP_VERSION__} · build du {built}
-      </p>
-    </main>
+    <div class={`app${showTabs ? ' with-tabs' : ''}`}>
+      <div key={key} class={`screen-anim ${direction.value}`}>
+        <CurrentScreen />
+      </div>
+      {showTabs && <TabBar />}
+      <ToastHost />
+    </div>
   );
 }
