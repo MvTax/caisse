@@ -1,4 +1,5 @@
 import type { CategoryId } from '../data/menu';
+import type { CrepeRota } from '../domain/rota';
 
 export type PrinterMode = 'epson' | 'bridge';
 
@@ -33,6 +34,8 @@ export interface Settings {
   receiptHeader: string;
   /** Taux de TVA par catégorie, en points de base (550 = 5,5 %). Prix de la carte = TTC. */
   vatRates: Record<CategoryId, number>;
+  /** Changement des crêpes d'exposition un jour sur deux (anchor vide = pas encore réglé). */
+  crepeRota: CrepeRota;
 }
 
 /**
@@ -82,4 +85,5 @@ export const DEFAULT_SETTINGS: Settings = {
   token: '',
   receiptHeader: DEFAULT_RECEIPT_HEADER,
   vatRates: { ...DEFAULT_VAT_RATES },
+  crepeRota: { anchor: '', weekdayName: 'Ouarda', weekendName: 'Kenza' },
 };

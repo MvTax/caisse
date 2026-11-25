@@ -5,6 +5,7 @@ import { Drinks } from '../ui/Drinks';
 import { Flow } from '../ui/Flow';
 import { Home } from '../ui/Home';
 import { Orders } from '../ui/Orders';
+import { CrepeRotaScreen } from '../ui/CrepeRota';
 import { Settings } from '../ui/Settings';
 import { Stats } from '../ui/Stats';
 import { TabBar } from '../ui/TabBar';
@@ -32,6 +33,8 @@ function CurrentScreen() {
       return <Stats />;
     case 'settings':
       return <Settings />;
+    case 'crepes':
+      return <CrepeRotaScreen />;
   }
 }
 

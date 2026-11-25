@@ -5,6 +5,7 @@
  */
 import type { Cart } from '../domain/cart';
 import type { Counters, Order } from '../domain/order';
+import { isDayKey } from '../domain/rota';
 import { isVatRate } from '../domain/vat';
 import { DEFAULT_SETTINGS, DEFAULT_VAT_RATES, type Settings } from './settings';
 import { migrateV1, V1_KEY } from './migrateV1';
@@ -35,6 +36,7 @@ export function emptyData(): AppData {
       ...DEFAULT_SETTINGS,
       bippers: [...DEFAULT_SETTINGS.bippers],
       vatRates: { ...DEFAULT_SETTINGS.vatRates },
+      crepeRota: { ...DEFAULT_SETTINGS.crepeRota },
     },
     orders: [],
     menuOverrides: {},
@@ -74,6 +76,15 @@ function cleanSettings(s: Settings & { bipperMax?: unknown }): Settings {
     rest.epsonFormat = DEFAULT_SETTINGS.epsonFormat;
   }
   if (typeof rest.receiptHeader !== 'string') rest.receiptHeader = DEFAULT_SETTINGS.receiptHeader;
+  const rawRota: unknown = rest.crepeRota;
+  const rota: Partial<Record<string, unknown>> =
+    rawRota && typeof rawRota === 'object' ? (rawRota as Record<string, unknown>) : {};
+  const name = (v: unknown, d: string) => (typeof v === 'string' && v.trim() ? v : d);
+  rest.crepeRota = {
+    anchor: isDayKey(rota.anchor) ? rota.anchor : '',
+    weekdayName: name(rota.weekdayName, DEFAULT_SETTINGS.crepeRota.weekdayName),
+    weekendName: name(rota.weekendName, DEFAULT_SETTINGS.crepeRota.weekendName),
+  };
   const rates: unknown = rest.vatRates;
   rest.vatRates = { ...DEFAULT_VAT_RATES };
   if (rates && typeof rates === 'object') {

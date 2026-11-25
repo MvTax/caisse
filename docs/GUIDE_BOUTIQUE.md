@@ -31,6 +31,17 @@ seul celui de l'eau (5,5 %) est confirmé par un vrai ticket de la caisse.
 Ces tickets portent la mention « Ticket client - non fiscal » : ils ne remplacent pas le ticket
 de caisse officiel (NF525), qui reste imprimé par le logiciel de caisse.
 
+## Crêpes d'exposition (un jour sur deux)
+
+Accueil → ligne **🥞 Crêpes d'exposition** (elle indique si c'est à faire aujourd'hui et par qui).
+Du lundi au vendredi c'est **Ouarda**, le samedi et le dimanche **Kenza** ; le rythme « un jour
+sur deux » continue d'une semaine à l'autre.
+
+1. **Une seule fois** : dans l'écran du planning, champ « Un jour de changement », mets un jour
+   où les crêpes ont vraiment été changées. Tout le reste se calcule à partir de ce jour.
+2. Choisis **Cette semaine** ou **Semaine prochaine**, puis **🖨️ Imprimer la fiche de la
+   semaine** : chaque jour à faire porte le prénom et une case à cocher.
+
 La suite de ce guide concerne la **passerelle** (réglage « Passerelle », imprimante CSI GIANT-100).
 
 ## Le matin (2 minutes)

@@ -1697,3 +1697,53 @@ textarea.ios-text {
   line-height: 1.35;
   resize: vertical;
 }
+
+/* ---------- Planning crêpes d'exposition ---------- */
+.rota-day {
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  font-weight: 600;
+  color: var(--muted, #9b8ea0);
+}
+.rota-day.change {
+  color: inherit;
+  font-weight: 800;
+}
+.rota-day.today {
+  background: #fff6db;
+  margin: 0 -8px;
+  padding: 10px 8px;
+  border-radius: 8px;
+}
+.crepes .field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  font-weight: 700;
+}
+.crepes .field input {
+  font: inherit;
+  font-weight: 600;
+  padding: 10px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  background: #fff;
+  min-height: 44px;
+}
+.crepes .field small {
+  font-weight: 500;
+}
+.crepe-banner {
+  margin-top: 14px;
+  background: #fff;
+  border-color: #e4d6c6;
+}
+.crepe-banner .cart-banner-text {
+  display: flex;
+  flex-direction: column;
+}
+.crepe-banner small {
+  font-weight: 600;
+  color: var(--gris-texte, #6b6470);
+}

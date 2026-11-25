@@ -1,4 +1,6 @@
-import { data, menu } from '../app/state';
+import { data, menu, now } from '../app/state';
+import { isChangeDay, mondayOf, personFor } from '../domain/rota';
+import { addDays, dayKey } from '../domain/time';
 import { push } from '../app/nav';
 import { cartCount, cartTotal } from '../domain/cart';
 import { formatCents } from '../domain/money';
@@ -73,6 +75,34 @@ export function CartBanner() {
   );
 }
 
+/** Raccourci vers le planning des crêpes d'exposition, avec la consigne du jour. */
+export function CrepeBanner() {
+  const rota = data.value.settings.crepeRota;
+  const today = dayKey(now.value);
+  const anchor = rota.anchor || mondayOf(today);
+  const tomorrow = addDays(today, 1);
+  const text = !rota.anchor
+    ? 'Régler le planning'
+    : isChangeDay(today, anchor)
+      ? `À changer aujourd’hui · ${personFor(today, rota)}`
+      : `Pas aujourd’hui · demain : ${personFor(tomorrow, rota)}`;
+  return (
+    <button
+      type="button"
+      class="cart-banner crepe-banner"
+      aria-label="Planning crêpes"
+      onClick={() => push({ name: 'crepes' })}
+    >
+      <span aria-hidden="true">🥞</span>
+      <span class="cart-banner-text">
+        Crêpes d’exposition
+        <small>{text}</small>
+      </span>
+      <span class="cart-banner-go">Planning ›</span>
+    </button>
+  );
+}
+
 export function Home() {
   const drinks = menu.categories.filter((c) => c.group === 'boissons');
   const others = menu.categories.filter((c) => c.group !== 'boissons');
@@ -108,6 +138,7 @@ export function Home() {
             <CategoryTile key={c.id} c={c} />
           ))}
         </div>
+        <CrepeBanner />
       </main>
     </div>
   );

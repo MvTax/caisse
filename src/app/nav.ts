@@ -9,7 +9,8 @@ export type Screen =
   | { name: 'cart' }
   | { name: 'checkout' }
   | { name: 'stats' }
-  | { name: 'settings' };
+  | { name: 'settings' }
+  | { name: 'crepes' };
 
 export type Tab = 'order' | 'orders';
 

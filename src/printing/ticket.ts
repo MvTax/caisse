@@ -9,6 +9,7 @@ import { formatCents } from '../domain/money';
 import { itemCount, type Order } from '../domain/order';
 import type { Stats } from '../domain/stats';
 import { formatDate, formatTime } from '../domain/time';
+import { DAY_SHORT, shortDate, type RotaDay } from '../domain/rota';
 import { formatRate, vatSummary } from '../domain/vat';
 import { sanitize } from './cp858';
 import { EscPos, wrap } from './escpos';
@@ -250,6 +251,52 @@ export function invoiceTicket(order: Order, o: ReceiptOptions): EscPos {
     .newline();
   vatTable(p, order, o).rule('-');
   return footer(p, o.at, RECEIPT_FOOTER);
+}
+
+/**
+ * Fiche interne : changement des crêpes d'exposition sur une semaine (lundi → dimanche),
+ * avec la personne qui doit le faire et une case à cocher.
+ */
+export function crepeRotaTicket(opts: {
+  columns: number;
+  days: RotaDay[];
+  weekdayName: string;
+  weekendName: string;
+  at: Date;
+}): EscPos {
+  const { days } = opts;
+  const first = days[0]?.key ?? '';
+  const last = days[days.length - 1]?.key ?? '';
+  const p = header(new EscPos({ columns: opts.columns }));
+  p.rule('=')
+    .bold(true)
+    .size(1, 2)
+    .textLine('CRÊPES D’EXPOSITION')
+    .size(1, 1)
+    .bold(false)
+    .textLine('Changement un jour sur deux')
+    .textLine(`Semaine du ${shortDate(first)} au ${shortDate(last)}/${last.slice(0, 4)}`)
+    .rule('=')
+    .align('left');
+  for (const d of days) {
+    const label = `${DAY_SHORT[d.weekday]} ${shortDate(d.key)}`;
+    if (d.change) {
+      p.bold(true)
+        .size(1, 2)
+        .row(label, `CHANGER ${d.who.slice(0, 12)} [ ]`)
+        .size(1, 1)
+        .bold(false);
+    } else {
+      p.row(label, '-');
+    }
+    if (d.weekday === 4) p.rule('-'); // séparation semaine / week-end
+  }
+  p.rule('=')
+    .textLine(`Lundi → vendredi : ${opts.weekdayName}`)
+    .textLine(`Samedi, dimanche : ${opts.weekendName}`)
+    .textLine('Cocher la case une fois fait.')
+    .rule('=');
+  return footer(p, opts.at, 'Fiche interne');
 }
 
 /** Ticket de test : vérifie la liaison, la largeur et les accents. */
