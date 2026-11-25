@@ -159,6 +159,15 @@ describe('store', () => {
     const st = loadData(s).data.settings;
     expect(st.vatRates).toMatchObject({ softs: 2000, crepes: 1000, smoothies: 550 });
     expect(st.receiptHeader).toContain('SIRET:839 932 977 00029');
+    s.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ settings: { crepeRota: { anchor: 'hier', weekendName: '' } } }),
+    );
+    expect(loadData(s).data.settings.crepeRota).toEqual({
+      anchor: '',
+      weekdayName: 'Ouarda',
+      weekendName: 'Kenza',
+    });
     s.setItem(STORAGE_KEY, JSON.stringify({ settings: { epsonFormat: 'text' } }));
     expect(loadData(s).data.settings.epsonFormat).toBe('text');
     s.setItem(STORAGE_KEY, JSON.stringify({ settings: { printerMode: 'bridge' } }));

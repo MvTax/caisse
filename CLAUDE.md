@@ -121,6 +121,10 @@ Soleil** (photo du 22/11/2026 : en-tête, NAF 5610C, TVA FR 67 839932977, SIRET 
 00029, eau à 5,5 %). En-tête et taux de TVA par catégorie dans les réglages ; seul 5,5 % pour
 l'eau est confirmé, les autres taux sont à faire vérifier. Mention « non fiscal », aucune
 imitation de la mention NF525, de la signature ou du code-barres du ticket certifié.
+Planning crêpes d'exposition (accueil → 🥞) : changement un jour sur deux en continu,
+lundi → vendredi Ouarda, samedi-dimanche Kenza (demande de l'utilisateur, 25/11/2026) ; jour de
+référence à régler par l'utilisateur ; fiche hebdo imprimable (cette semaine / semaine
+prochaine). Code : `src/domain/rota.ts`, `src/ui/CrepeRota.tsx`, `crepeRotaTicket`.
 
 
 ### 4.1 Imprimante

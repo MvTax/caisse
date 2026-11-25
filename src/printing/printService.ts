@@ -22,9 +22,17 @@ import {
   type Result,
   type PrintResponse,
 } from './bridgeClient';
+import type { RotaDay } from '../domain/rota';
 import type { EscPos } from './escpos';
 import { eposPrint, eposStatus } from './eposClient';
-import { charsetTicket, customerTicket, invoiceTicket, orderTicket, testTicket } from './ticket';
+import {
+  charsetTicket,
+  crepeRotaTicket,
+  customerTicket,
+  invoiceTicket,
+  orderTicket,
+  testTicket,
+} from './ticket';
 
 export const servingMode = detectServingMode(location);
 
@@ -277,4 +285,17 @@ export async function printCustomerReceipt(
     kind === 'detailed' ? customerTicket(menu, order, opts) : invoiceTicket(order, opts);
   const label = kind === 'detailed' ? 'Ticket client' : 'Note sans detail';
   return send(ticket, `receipt-${order.id}-${Date.now()}`, `${label} #${order.number}`, 1);
+}
+
+/** Fiche « changement des crêpes d'exposition » pour une semaine. */
+export async function printCrepeRota(days: RotaDay[]): Promise<Result<PrintResponse>> {
+  const s = data.value.settings;
+  const ticket = crepeRotaTicket({
+    columns: s.columns,
+    days,
+    weekdayName: s.crepeRota.weekdayName,
+    weekendName: s.crepeRota.weekendName,
+    at: new Date(),
+  });
+  return send(ticket, `rota-${days[0]?.key ?? ''}-${Date.now()}`, 'Planning crepes', 1);
 }
