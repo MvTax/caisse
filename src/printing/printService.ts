@@ -289,13 +289,6 @@ export async function printCustomerReceipt(
 
 /** Fiche « changement des crêpes d'exposition » pour une semaine. */
 export async function printCrepeRota(days: RotaDay[]): Promise<Result<PrintResponse>> {
-  const s = data.value.settings;
-  const ticket = crepeRotaTicket({
-    columns: s.columns,
-    days,
-    weekdayName: s.crepeRota.weekdayName,
-    weekendName: s.crepeRota.weekendName,
-    at: new Date(),
-  });
+  const ticket = crepeRotaTicket({ columns: data.value.settings.columns, days });
   return send(ticket, `rota-${days[0]?.key ?? ''}-${Date.now()}`, 'Planning crepes', 1);
 }

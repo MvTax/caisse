@@ -55,8 +55,11 @@ test('planning de la semaine, semaine prochaine, réglage du jour, fiche imprim�
   await expect(page.getByRole('status').filter({ hasText: 'Fiche crêpes imprimée' })).toBeVisible();
   const hex = /<command>([0-9a-f]+)<\/command>/.exec(prints.at(-1) ?? '')?.[1] ?? '';
   const ticket = Buffer.from(hex, 'hex').toString('latin1');
-  expect(ticket).toContain('Semaine du 30/11 au 06/12/2026');
-  expect(ticket).toMatch(/Dim 06\/12 +CHANGER Kenza \[ \]/);
+  expect(ticket).toContain('PLANNING');
+  expect(ticket).toContain('30/11 au 06/12');
+  expect(ticket).toContain('DIMANCHE 06/12');
+  expect(ticket).toContain(' KENZA ');
+  expect(ticket).not.toContain('MARDI');
 
   // Réglage conservé après rechargement.
   await page.reload();

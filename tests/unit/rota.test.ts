@@ -56,15 +56,11 @@ describe('planning crêpes d’exposition', () => {
   });
 });
 
-describe('fiche crêpes imprimée', () => {
+describe('fiche PLANNING imprimée', () => {
   const ticket = (columns: number) =>
-    crepeRotaTicket({
-      columns,
-      days: weekPlan('2026-11-23', rota),
-      weekdayName: 'Ouarda',
-      weekendName: 'Kenza',
-      at: new Date('2026-11-23T09:00:00Z'),
-    });
+    crepeRotaTicket({ columns, days: weekPlan('2026-11-23', rota) });
+  const lines = (columns = 48) =>
+    renderPreview(ticket(columns).toPreview(), columns).map((l) => l.trim());
 
   it.each([32, 42, 48])('aucune ligne ne dépasse %i colonnes', (columns) => {
     for (const l of renderPreview(ticket(columns).toPreview(), columns)) {
@@ -72,18 +68,32 @@ describe('fiche crêpes imprimée', () => {
     }
   });
 
-  it('semaine, jours à changer avec la personne et une case, jours sans changement', () => {
-    const t = ticket(48)
-      .toPreview()
-      .map((l) => l.text)
-      .join('\n');
-    expect(t).toContain('CRÊPES D’EXPOSITION'.replace('’', "'"));
-    expect(t).toContain('Semaine du 23/11 au 29/11/2026');
-    expect(t).toMatch(/Lun 23\/11 +CHANGER Ouarda \[ \]/);
-    expect(t).toMatch(/Mar 24\/11 +-/);
-    expect(t).toMatch(/Dim 29\/11 +CHANGER Kenza \[ \]/);
-    expect(t).toContain('Lundi → vendredi : Ouarda'.replace('→', '->'));
-    expect(t).toContain('Samedi, dimanche : Kenza');
+  it('titre, semaine, puis seulement les jours de changement avec le prénom en gros', () => {
+    const t = ticket(48).toPreview();
+    const title = t.find((l) => l.text === 'PLANNING');
+    expect(title).toMatchObject({ width: 3, height: 3, bold: true });
+    expect(t.some((l) => l.text === '23/11 au 29/11')).toBe(true);
+    const days = t.filter((l) => /^[A-Z]+ \d\d\/\d\d$/.test(l.text)).map((l) => l.text);
+    expect(days).toEqual(['LUNDI 23/11', 'MERCREDI 25/11', 'VENDREDI 27/11', 'DIMANCHE 29/11']);
+    const names = t.filter((l) => l.invert).map((l) => l.text);
+    expect(names).toEqual([' OUARDA ', ' OUARDA ', ' OUARDA ', ' KENZA ']);
+    for (const n of t.filter((l) => l.invert)) expect(n).toMatchObject({ width: 2, height: 2 });
+  });
+
+  it('aucun détail en plus', () => {
+    const all = lines().join('\n');
+    for (const extra of [
+      'MA+',
+      'Mangos',
+      'un jour sur deux',
+      'Cocher',
+      '[ ]',
+      'Fiche',
+      'MARDI',
+      'Lundi ->',
+    ]) {
+      expect(all, extra).not.toContain(extra);
+    }
   });
 
   it('coupe finale', () => {
