@@ -56,15 +56,9 @@ describe('planning crêpes d’exposition', () => {
   });
 });
 
-describe('fiche crêpes imprimée', () => {
+describe('fiche PLANNING imprimée', () => {
   const ticket = (columns: number) =>
-    crepeRotaTicket({
-      columns,
-      days: weekPlan('2026-11-23', rota),
-      weekdayName: 'Ouarda',
-      weekendName: 'Kenza',
-      at: new Date('2026-11-23T09:00:00Z'),
-    });
+    crepeRotaTicket({ columns, days: weekPlan('2026-11-23', rota) });
 
   it.each([32, 42, 48])('aucune ligne ne dépasse %i colonnes', (columns) => {
     for (const l of renderPreview(ticket(columns).toPreview(), columns)) {
@@ -72,18 +66,43 @@ describe('fiche crêpes imprimée', () => {
     }
   });
 
-  it('semaine, jours à changer avec la personne et une case, jours sans changement', () => {
-    const t = ticket(48)
+  it('PLANNING puis les 7 jours en gros : prénom ou « -- », sans date', () => {
+    const t = ticket(48).toPreview();
+    expect(t.find((l) => l.text === 'PLANNING')).toMatchObject({ width: 3, height: 3 });
+    const rows = t.filter((l) => l.width === 2 && l.text.trim());
+    expect(rows.map((l) => l.text.replace(/ +/g, ' '))).toEqual([
+      'Lundi Ouarda',
+      'Mardi --',
+      'Mercredi Ouarda',
+      'Jeudi --',
+      'Vendredi Ouarda',
+      'Samedi --',
+      'Dimanche Kenza',
+    ]);
+    for (const r of rows) {
+      expect(r.height).toBe(2);
+      expect(r.bold).toBe(!r.text.endsWith('--'));
+    }
+  });
+
+  it('aucun détail en plus : ni date, ni trait, ni en-tête', () => {
+    const all = ticket(48)
       .toPreview()
       .map((l) => l.text)
       .join('\n');
-    expect(t).toContain('CRÊPES D’EXPOSITION'.replace('’', "'"));
-    expect(t).toContain('Semaine du 23/11 au 29/11/2026');
-    expect(t).toMatch(/Lun 23\/11 +CHANGER Ouarda \[ \]/);
-    expect(t).toMatch(/Mar 24\/11 +-/);
-    expect(t).toMatch(/Dim 29\/11 +CHANGER Kenza \[ \]/);
-    expect(t).toContain('Lundi → vendredi : Ouarda'.replace('→', '->'));
-    expect(t).toContain('Samedi, dimanche : Kenza');
+    expect(all).not.toMatch(/\d\d\/\d\d/);
+    expect(all).not.toMatch(/===|----|\[ \]/);
+    for (const extra of ['MA+', 'Mangos', 'jour sur deux', 'Fiche', 'CHANGER']) {
+      expect(all, extra).not.toContain(extra);
+    }
+  });
+
+  it('une ligne vide entre chaque jour', () => {
+    const t = ticket(48).toPreview();
+    const idx = t.flatMap((l, i) => (l.width === 2 && l.text.trim() ? [i] : []));
+    for (let k = 1; k < idx.length; k++) {
+      expect(t[idx[k]! - 1]!.text).toBe('');
+    }
   });
 
   it('coupe finale', () => {

@@ -111,8 +111,9 @@ apparaître : Annuler).
 (`src/printing/eposClient.ts`, réglage `printerMode: 'epson'`), sans passerelle, même depuis
 GitHub Pages. Les octets ESC/POS de `ticket.ts` sont envoyés tels quels dans `<command>` (hex) ;
 variante `<text>` automatique si l'imprimante répond `SchemaError`. La passerelle + CSI GIANT-100
-restent disponibles (réglage « Passerelle »). À valider sur papier : ticket test caractères
-(accents, €) via `<command>`.
+restent disponibles (réglage « Passerelle »). **Validé sur papier le 25/11/2026** : la fiche
+planning envoyée en `<command>` (format « Complet ») est sortie correctement sur l'Epson, accents
+compris (« CRÊPES »), tailles et coupe OK. Reste à vérifier : le « € » (ticket test caractères).
 Secours : réglage « Format d'envoi » → « Simple » (`epsonFormat: 'text'`) envoie directement en
 `<text>` (méthode du testeur, ticket sorti en boutique). Le ticket récap de journée s'imprime
 depuis 📊 Statistiques.
@@ -124,7 +125,9 @@ imitation de la mention NF525, de la signature ou du code-barres du ticket certi
 Planning crêpes d'exposition (accueil → 🥞) : changement un jour sur deux en continu,
 lundi → vendredi Ouarda, samedi-dimanche Kenza (demande de l'utilisateur, 25/11/2026) ; jour de
 référence à régler par l'utilisateur ; fiche hebdo imprimable (cette semaine / semaine
-prochaine). Code : `src/domain/rota.ts`, `src/ui/CrepeRota.tsx`, `crepeRotaTicket`.
+prochaine), volontairement sobre, comme la liste à l'écran : « PLANNING » puis les 7 jours en gros
+(nom du jour, prénom ou « -- »), espacés, sans date, sans trait, aucun autre détail
+(demande de l'utilisateur). Code : `src/domain/rota.ts`, `src/ui/CrepeRota.tsx`, `crepeRotaTicket`.
 
 
 ### 4.1 Imprimante
