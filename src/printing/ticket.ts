@@ -9,7 +9,7 @@ import { formatCents } from '../domain/money';
 import { itemCount, type Order } from '../domain/order';
 import type { Stats } from '../domain/stats';
 import { formatDate, formatTime } from '../domain/time';
-import { DAY_LONG, shortDate, type RotaDay } from '../domain/rota';
+import { DAY_LONG, type RotaDay } from '../domain/rota';
 import { formatRate, vatSummary } from '../domain/vat';
 import { sanitize } from './cp858';
 import { EscPos, wrap } from './escpos';
@@ -254,39 +254,20 @@ export function invoiceTicket(order: Order, o: ReceiptOptions): EscPos {
 }
 
 /**
- * Fiche « PLANNING » des crêpes d'exposition, volontairement sobre (demande de l'utilisateur) :
- * le titre, la semaine, puis seulement les jours de changement avec le prénom en très gros.
+ * Fiche « PLANNING » des crêpes d'exposition, comme la liste à l'écran (demande de
+ * l'utilisateur) : les 7 jours en gros, le nom du jour seul (pas de date), le prénom ou « -- »,
+ * de l'espace entre les lignes, aucun trait ni autre détail.
  */
 export function crepeRotaTicket(opts: { columns: number; days: RotaDay[] }): EscPos {
-  const { days } = opts;
-  const first = days[0]?.key ?? '';
-  const last = days[days.length - 1]?.key ?? '';
-  const p = new EscPos({ columns: opts.columns }).init().codepage858().align('center');
-  p.bold(true)
-    .size(3, 3)
-    .textLine('PLANNING')
-    .size(1, 1)
-    .bold(false)
-    .size(1, 2)
-    .textLine(`${shortDate(first)} au ${shortDate(last)}`)
-    .size(1, 1)
-    .rule('=');
-  for (const d of days.filter((x) => x.change)) {
+  const p = new EscPos({ columns: opts.columns }).init().codepage858();
+  p.align('center').bold(true).size(3, 3).textLine('PLANNING').align('left');
+  for (const d of opts.days) {
     p.newline()
-      .bold(true)
-      .size(1, 2)
-      .textLine(`${DAY_LONG[d.weekday]?.toUpperCase()} ${shortDate(d.key)}`)
       .size(2, 2)
-      .invert(true)
-      .text(` ${d.who.toUpperCase()} `)
-      .invert(false)
-      .newline()
-      .size(1, 1)
-      .bold(false)
-      .newline()
-      .rule('-');
+      .bold(d.change)
+      .row(DAY_LONG[d.weekday] ?? '', d.change ? d.who : '--');
   }
-  return p.feed(3).cut();
+  return p.size(1, 1).bold(false).feed(4).cut();
 }
 
 /** Ticket de test : vérifie la liaison, la largeur et les accents. */

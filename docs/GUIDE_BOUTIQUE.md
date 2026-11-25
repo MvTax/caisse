@@ -40,7 +40,7 @@ sur deux » continue d'une semaine à l'autre.
 1. **Une seule fois** : dans l'écran du planning, champ « Un jour de changement », mets un jour
    où les crêpes ont vraiment été changées. Tout le reste se calcule à partir de ce jour.
 2. Choisis **Cette semaine** ou **Semaine prochaine**, puis **🖨️ Imprimer la fiche de la
-   semaine** : « PLANNING », la semaine, puis chaque jour de changement avec le prénom en gros.
+   semaine** : « PLANNING », puis les 7 jours en gros : le prénom les jours de changement, « -- » les autres jours.
 
 La suite de ce guide concerne la **passerelle** (réglage « Passerelle », imprimante CSI GIANT-100).
 

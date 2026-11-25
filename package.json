@@ -1,7 +1,7 @@
 {
   "name": "caisse",
   "private": true,
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "MA+ Commander — prise de commande Mangos Juice Bar (iPhone) + impression tickets ESC/POS",
   "type": "module",
   "scripts": {

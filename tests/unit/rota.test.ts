@@ -59,8 +59,6 @@ describe('planning crêpes d’exposition', () => {
 describe('fiche PLANNING imprimée', () => {
   const ticket = (columns: number) =>
     crepeRotaTicket({ columns, days: weekPlan('2026-11-23', rota) });
-  const lines = (columns = 48) =>
-    renderPreview(ticket(columns).toPreview(), columns).map((l) => l.trim());
 
   it.each([32, 42, 48])('aucune ligne ne dépasse %i colonnes', (columns) => {
     for (const l of renderPreview(ticket(columns).toPreview(), columns)) {
@@ -68,31 +66,42 @@ describe('fiche PLANNING imprimée', () => {
     }
   });
 
-  it('titre, semaine, puis seulement les jours de changement avec le prénom en gros', () => {
+  it('PLANNING puis les 7 jours en gros : prénom ou « -- », sans date', () => {
     const t = ticket(48).toPreview();
-    const title = t.find((l) => l.text === 'PLANNING');
-    expect(title).toMatchObject({ width: 3, height: 3, bold: true });
-    expect(t.some((l) => l.text === '23/11 au 29/11')).toBe(true);
-    const days = t.filter((l) => /^[A-Z]+ \d\d\/\d\d$/.test(l.text)).map((l) => l.text);
-    expect(days).toEqual(['LUNDI 23/11', 'MERCREDI 25/11', 'VENDREDI 27/11', 'DIMANCHE 29/11']);
-    const names = t.filter((l) => l.invert).map((l) => l.text);
-    expect(names).toEqual([' OUARDA ', ' OUARDA ', ' OUARDA ', ' KENZA ']);
-    for (const n of t.filter((l) => l.invert)) expect(n).toMatchObject({ width: 2, height: 2 });
+    expect(t.find((l) => l.text === 'PLANNING')).toMatchObject({ width: 3, height: 3 });
+    const rows = t.filter((l) => l.width === 2 && l.text.trim());
+    expect(rows.map((l) => l.text.replace(/ +/g, ' '))).toEqual([
+      'Lundi Ouarda',
+      'Mardi --',
+      'Mercredi Ouarda',
+      'Jeudi --',
+      'Vendredi Ouarda',
+      'Samedi --',
+      'Dimanche Kenza',
+    ]);
+    for (const r of rows) {
+      expect(r.height).toBe(2);
+      expect(r.bold).toBe(!r.text.endsWith('--'));
+    }
   });
 
-  it('aucun détail en plus', () => {
-    const all = lines().join('\n');
-    for (const extra of [
-      'MA+',
-      'Mangos',
-      'un jour sur deux',
-      'Cocher',
-      '[ ]',
-      'Fiche',
-      'MARDI',
-      'Lundi ->',
-    ]) {
+  it('aucun détail en plus : ni date, ni trait, ni en-tête', () => {
+    const all = ticket(48)
+      .toPreview()
+      .map((l) => l.text)
+      .join('\n');
+    expect(all).not.toMatch(/\d\d\/\d\d/);
+    expect(all).not.toMatch(/===|----|\[ \]/);
+    for (const extra of ['MA+', 'Mangos', 'jour sur deux', 'Fiche', 'CHANGER']) {
       expect(all, extra).not.toContain(extra);
+    }
+  });
+
+  it('une ligne vide entre chaque jour', () => {
+    const t = ticket(48).toPreview();
+    const idx = t.flatMap((l, i) => (l.width === 2 && l.text.trim() ? [i] : []));
+    for (let k = 1; k < idx.length; k++) {
+      expect(t[idx[k]! - 1]!.text).toBe('');
     }
   });
 

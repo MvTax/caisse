@@ -56,10 +56,10 @@ test('planning de la semaine, semaine prochaine, réglage du jour, fiche imprim�
   const hex = /<command>([0-9a-f]+)<\/command>/.exec(prints.at(-1) ?? '')?.[1] ?? '';
   const ticket = Buffer.from(hex, 'hex').toString('latin1');
   expect(ticket).toContain('PLANNING');
-  expect(ticket).toContain('30/11 au 06/12');
-  expect(ticket).toContain('DIMANCHE 06/12');
-  expect(ticket).toContain(' KENZA ');
-  expect(ticket).not.toContain('MARDI');
+  expect(ticket).toMatch(/Lundi +Ouarda/);
+  expect(ticket).toMatch(/Mardi +--/);
+  expect(ticket).toMatch(/Dimanche +Kenza/);
+  expect(ticket).not.toMatch(/\d\d\/\d\d/);
 
   // Réglage conservé après rechargement.
   await page.reload();

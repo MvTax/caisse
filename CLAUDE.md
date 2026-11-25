@@ -125,8 +125,9 @@ imitation de la mention NF525, de la signature ou du code-barres du ticket certi
 Planning crêpes d'exposition (accueil → 🥞) : changement un jour sur deux en continu,
 lundi → vendredi Ouarda, samedi-dimanche Kenza (demande de l'utilisateur, 25/11/2026) ; jour de
 référence à régler par l'utilisateur ; fiche hebdo imprimable (cette semaine / semaine
-prochaine), volontairement sobre : « PLANNING », la semaine, jours de changement + prénom en
-gros inversé, aucun autre détail (demande de l'utilisateur). Code : `src/domain/rota.ts`, `src/ui/CrepeRota.tsx`, `crepeRotaTicket`.
+prochaine), volontairement sobre, comme la liste à l'écran : « PLANNING » puis les 7 jours en gros
+(nom du jour, prénom ou « -- »), espacés, sans date, sans trait, aucun autre détail
+(demande de l'utilisateur). Code : `src/domain/rota.ts`, `src/ui/CrepeRota.tsx`, `crepeRotaTicket`.
 
 
 ### 4.1 Imprimante
