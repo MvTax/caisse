@@ -128,6 +128,12 @@ référence à régler par l'utilisateur ; fiche hebdo imprimable (cette semaine
 prochaine), volontairement sobre, comme la liste à l'écran : « PLANNING » puis les 7 jours en gros
 (nom du jour, prénom ou « -- »), espacés, sans date, sans trait, aucun autre détail
 (demande de l'utilisateur). Code : `src/domain/rota.ts`, `src/ui/CrepeRota.tsx`, `crepeRotaTicket`.
+Testeur (`public/testeur/`, hors app) : bouton « 🧽 Planning vaisselle » (Texte libre), même
+style sobre. Règles données par l'utilisateur le 25/11/2026 — fermeture : 1 au smoothie + 2 ou +
+au sandwich → smoothie fait tout ; 2 au smoothie + 1 au sandwich → smoothie fait tout ; autant des
+deux côtés → chacun sa vaisselle. Journée : smoothie débordé → un sandwich libre fait les
+blenders ; le reste : qui pose un truc sale à l'évier le lave. (Cas « smoothie fait tout » dans
+les deux cas inégaux : transcrit tel quel, confirmation demandée à l'utilisateur.)
 
 
 ### 4.1 Imprimante
