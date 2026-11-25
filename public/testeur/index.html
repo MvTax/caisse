@@ -169,7 +169,7 @@
 
 <header>
   <h1>Testeur d'impression</h1>
-  <p>Écrivez du texte ou simulez un ticket de caisse, puis imprimez. <span class="ver">Version 2026-11-22.7</span></p>
+  <p>Écrivez du texte ou simulez un ticket de caisse, puis imprimez. <span class="ver">Version 2026-11-25.1</span></p>
   <p class="notice" id="bootError" hidden></p>
 </header>
 
@@ -310,6 +310,7 @@
         </p>
         <div class="actions" style="margin-top:8px">
           <button class="btn" id="prankBtn" type="button">😈 Ticket hacker</button>
+          <button class="btn" id="dishBtn" type="button">🧽 Planning vaisselle</button>
         </div>
       </div>
 
@@ -1362,7 +1363,7 @@ Tél. 01 23 45 67 89</textarea>
   }
 
   // ---------- Test complet Epson + rapport copiable ----------
-  const TESTEUR_VERSION = '2026-11-22.7';
+  const TESTEUR_VERSION = '2026-11-25.1';
 
   function withTimeout(ms) {
     const ctrl = new AbortController();
@@ -1559,6 +1560,42 @@ Tél. 01 23 45 67 89</textarea>
     const shown = digits.length === 10 ? digits.replace(/(\d\d)(?=\d)/g, '$1 ') : (tel || '06 .. .. .. ..');
     $('#freeText').value = PRANK.replace('{TEL}', shown);
     $('#ftAlign').value = 'left'; $('#ftBold').checked = false; $('#ftBig').checked = false;
+    update();
+    $('#preview').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  // Modèle « planning vaisselle » : même style sobre que la fiche crêpes de l'app (gros texte,
+  // espacé, sans traits). Règles données par l'utilisateur le 25/11/2026.
+  const DISHES = [
+    '# VAISSELLE',
+    '',
+    '## FERMETURE',
+    '',
+    '1 au smoothie',
+    '2 ou + au sandwich',
+    '**Smoothie fait tout**',
+    '',
+    '2 au smoothie',
+    '1 au sandwich',
+    '**Smoothie fait tout**',
+    '',
+    'Autant des 2 côtés',
+    '**Chacun sa vaisselle**',
+    '',
+    '',
+    '## JOURNÉE',
+    '',
+    'Smoothie débordé :',
+    '**un sandwich libre**',
+    '**fait les blenders**',
+    '',
+    'Le reste :',
+    '**tu poses un truc sale**',
+    '**à l\'évier, tu le laves**',
+  ].join('\n');
+  $('#dishBtn').addEventListener('click', () => {
+    $('#freeText').value = DISHES;
+    $('#ftAlign').value = 'left'; $('#ftBold').checked = false; $('#ftBig').checked = true;
     update();
     $('#preview').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
